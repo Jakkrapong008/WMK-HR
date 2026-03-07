@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ข้อมูลสารสนเทศทะเบียนประวัติข้าราชการ โรงเรียนวัดแม่กะ</title>
+    
+    <!-- Google Fonts: Sarabun -->
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Sarabun', 'sans-serif'] },
+                    colors: {
+                        mkred: { 500: '#E53E3E', 600: '#C53030', 700: '#9B2C2C', 800: '#822727', 900: '#63171B' },
+                        mkyellow: { 400: '#ECC94B', 500: '#D69E2E', 600: '#B7791F' }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body { font-family: 'Sarabun', sans-serif; background-color: #f7fafc; }
+        .tab-btn { border-bottom: 4px solid transparent; }
+        .tab-btn.active { border-bottom: 4px solid #C53030; color: #C53030; font-weight: 700; background-color: #FEF2F2; }
+        .glass-card { background: rgba(255, 255, 255, 0.95); box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 0.75rem; border-top: 4px solid #C53030; }
+        #loader { background: rgba(255,255,255,0.9); z-index: 50; }
+        .spinner { border: 4px solid rgba(0, 0, 0, 0.1); width: 50px; height: 50px; border-radius: 50%; border-left-color: #C53030; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        [v-cloak] { display: none; }
+    </style>
+</head>
+<body class="text-gray-800 flex flex-col min-h-screen bg-gray-50">
+
+    <!-- Loader -->
+    <div id="loader" class="fixed inset-0 flex flex-col items-center justify-center bg-white/90 z-50">
+        <div class="spinner mb-4"></div>
+        <h2 class="text-mkred-700 text-xl font-bold">กำลังโหลดข้อมูลสารสนเทศ...</h2>
+        <p class="text-gray-500">กรุณารอสักครู่</p>
+    </div>
+
+    <!-- Header: Centered Logo and Title -->
+    <header class="bg-mkred-800 text-white shadow-md pt-6 pb-4 flex-shrink-0">
+        <div class="container mx-auto px-4 flex flex-col items-center justify-center text-center">
+            <img src="https://img2.pic.in.th/logob0b7643db577ceee.png" alt="Logo" class="h-24 w-24 object-contain bg-white rounded-full p-1 border-4 border-mkyellow-400 shadow-lg mb-3">
+            <h1 class="text-2xl md:text-3xl font-bold text-mkyellow-400 mb-1">โรงเรียนวัดแม่กะ</h1>
+            <p class="text-sm md:text-base opacity-95">ข้อมูลสารสนเทศทะเบียนประวัติข้าราชการและบุคลากรทางการศึกษา</p>
+        </div>
+    </header>
+
+    <!-- Navigation Tabs: Centered -->
+    <div class="bg-white shadow-sm sticky top-0 z-40 border-b border-gray-200">
+        <div class="container mx-auto px-4">
+            <nav class="flex justify-center gap-2 md:gap-8 overflow-x-auto w-full">
+                <button onclick="switchTab('tab1')" id="btn-tab1" class="tab-btn active px-4 py-3 text-sm md:text-base whitespace-nowrap font-medium text-gray-600 hover:text-mkred-700 transition">
+                    <i class="fas fa-chart-pie mr-1"></i> สารสนเทศองค์กร
+                </button>
+                <button onclick="switchTab('tab2')" id="btn-tab2" class="tab-btn px-4 py-3 text-sm md:text-base whitespace-nowrap font-medium text-gray-600 hover:text-mkred-700 transition">
+                    <i class="fas fa-id-card mr-1"></i> ข้อมูลส่วนบุคคล
+                </button>
+                <button onclick="switchTab('tab3')" id="btn-tab3" class="tab-btn px-4 py-3 text-sm md:text-base whitespace-nowrap font-medium text-gray-600 hover:text-mkred-700 transition">
+                    <i class="fas fa-clock mr-1"></i> ข้อมูลการนับเวลา
+                </button>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow overflow-y-auto p-4 md:p-6 container mx-auto">
+        
+        <!-- ================= TAB 1: Dashboard ================= -->
+        <section id="tab1" class="space-y-6">
+            <!-- Summary Metrics -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="glass-card p-4 flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm font-semibold">อายุเฉลี่ยบุคลากร</p>
+                        <h3 class="text-3xl font-bold text-mkred-700" id="metric-age">-</h3>
+                    </div>
+                    <i class="fas fa-users text-4xl text-mkyellow-500 opacity-50"></i>
+                </div>
+                <div class="glass-card p-4 flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm font-semibold">อายุราชการเฉลี่ย</p>
+                        <h3 class="text-3xl font-bold text-mkred-700" id="metric-service">-</h3>
+                    </div>
+                    <i class="fas fa-briefcase text-4xl text-mkyellow-500 opacity-50"></i>
+                </div>
+                <div class="glass-card p-4 flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm font-semibold">อายุราชการ ณ รร. ปัจจุบัน (เฉลี่ย)</p>
+                        <h3 class="text-3xl font-bold text-mkred-700" id="metric-school">-</h3>
+                    </div>
+                    <i class="fas fa-school text-4xl text-mkyellow-500 opacity-50"></i>
+                </div>
+            </div>
+
+            <!-- Charts Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="glass-card p-4"><h3 class="text-center font-bold text-mkred-800 mb-2">สรุปจำนวนบุคลากรตามตำแหน่ง</h3><canvas id="chartPositions"></canvas></div>
+                <div class="glass-card p-4"><h3 class="text-center font-bold text-mkred-800 mb-2">สัดส่วนเพศ</h3><canvas id="chartGender"></canvas></div>
+                <div class="glass-card p-4"><h3 class="text-center font-bold text-mkred-800 mb-2">สัดส่วนศาสนา</h3><canvas id="chartReligion"></canvas></div>
+                <div class="glass-card p-4"><h3 class="text-center font-bold text-mkred-800 mb-2">ระดับการศึกษา</h3><canvas id="chartEduLevel"></canvas></div>
+                <div class="glass-card p-4"><h3 class="text-center font-bold text-mkred-800 mb-2">วุฒิการศึกษาสูงสุด</h3><canvas id="chartEducation"></canvas></div>
+                <div class="glass-card p-4"><h3 class="text-center font-bold text-mkred-800 mb-2">กลุ่มวิชาเอก</h3><canvas id="chartMajor"></canvas></div>
+                <div class="glass-card p-4"><h3 class="text-center font-bold text-mkred-800 mb-2">วิทยฐานะ</h3><canvas id="chartAcademic"></canvas></div>
+            </div>
+        </section>
+
+        <!-- Login Overlay for Tab 2 & 3 -->
+        <div id="login-section" class="hidden flex flex-col items-center justify-center mt-10">
+            <div class="glass-card p-8 max-w-md w-full text-center">
+                <i class="fas fa-lock text-5xl text-mkred-600 mb-4"></i>
+                <h2 class="text-2xl font-bold text-mkred-800 mb-2">ระบบรักษาความปลอดภัย</h2>
+                <p class="text-gray-600 mb-6">กรุณากรอกเลขบัตรประจำตัวประชาชน 13 หลัก เพื่อดูข้อมูลส่วนบุคคลและการนับเวลา</p>
+                <input type="password" id="id-input" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-mkred-500 text-center text-xl tracking-widest mb-4" placeholder="X-XXXX-XXXXX-XX-X" maxlength="13">
+                <button onclick="login()" class="w-full bg-mkred-700 hover:bg-mkred-800 text-white font-bold py-2 px-4 rounded-lg transition duration-200">เข้าสู่ระบบ</button>
+                <p id="login-error" class="text-red-500 text-sm mt-3 hidden">ไม่พบข้อมูล หรือ เลขบัตรประชาชนไม่ถูกต้อง</p>
+            </div>
+        </div>
+
+        <!-- ================= TAB 2: Personal Info ================= -->
+        <section id="tab2" class="hidden space-y-6">
+            <div class="flex justify-between items-center bg-mkyellow-400 p-4 rounded-lg shadow">
+                <h2 class="text-xl font-bold text-mkred-900"><i class="fas fa-user-circle mr-2"></i>ข้อมูลส่วนบุคคล: <span id="p-name"></span></h2>
+                <button onclick="logout()" class="text-mkred-800 hover:text-red-900 font-bold text-sm bg-white px-3 py-1 rounded"><i class="fas fa-sign-out-alt mr-1"></i>ออกจากระบบ</button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="personal-data-container">
+                <!-- Data will be injected here via JS -->
+            </div>
+        </section>
+
+        <!-- ================= TAB 3: Time Calculation ================= -->
+        <section id="tab3" class="hidden space-y-6">
+            <div class="flex flex-col md:flex-row justify-between items-center bg-mkyellow-400 p-4 rounded-lg shadow gap-4">
+                <h2 class="text-xl font-bold text-mkred-900"><i class="fas fa-calculator mr-2"></i>ข้อมูลการนับเวลา: <span id="t-name"></span></h2>
+                <div class="flex items-center gap-2 bg-white px-3 py-2 rounded-lg shadow-sm">
+                    <label class="text-sm font-bold text-gray-700">เทียบกับวันที่:</label>
+                    <input type="date" id="target-date" class="border rounded px-2 py-1 text-sm focus:outline-none focus:border-mkred-500" onchange="calculateAllTimes()">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="time-data-container">
+                <!-- Time cards injected here -->
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        // --- Configurations ---
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbzdwp_fLG2_JKvm9VqPhIvo3jro1BwqITzOKneSqAGDzZri9CLCsW3Lacy7B1tCzCd1OQ/exec";
+        
+        let appData = {};
+        let currentUser = null;
+        let chartInstances = {};
+
+        // --- Initialization ---
+        window.onload = async () => {
+            document.getElementById('target-date').valueAsDate = new Date();
+            await fetchSheetData();
+        };
+
+        async function fetchSheetData() {
+            try {
+                // Fetch from the provided GAS URL
+                const response = await fetch(GAS_URL);
+                if (!response.ok) throw new Error("Network response was not ok");
+                appData = await response.json();
+                
+                document.getElementById('loader').style.display = 'none';
+                renderDashboard();
+            } catch (error) {
+                console.error("Error fetching data:", error);
+                document.getElementById('loader').innerHTML = `
+                    <div class="text-red-600 text-center">
+                        <i class="fas fa-exclamation-triangle text-4xl mb-2"></i>
+                        <p class="font-bold">เกิดข้อผิดพลาดในการดึงข้อมูล</p>
+                        <p class="text-sm">โปรดตรวจสอบ Google Apps Script API หรือการเชื่อมต่ออินเทอร์เน็ต</p>
+                    </div>
+                `;
+            }
+        }
+
+        // --- Navigation ---
+        function switchTab(tabId) {
+            ['tab1', 'tab2', 'tab3', 'login-section'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+            ['btn-tab1', 'btn-tab2', 'btn-tab3'].forEach(id => {
+                document.getElementById(id).classList.remove('active');
+            });
+
+            document.getElementById(`btn-${tabId}`).classList.add('active');
+
+            if (tabId === 'tab1') {
+                document.getElementById('tab1').classList.remove('hidden');
+            } else {
+                if (currentUser) {
+                    document.getElementById(tabId).classList.remove('hidden');
+                    if(tabId === 'tab2') renderPersonalInfo();
+                    if(tabId === 'tab3') calculateAllTimes();
+                } else {
+                    document.getElementById('login-section').classList.remove('hidden');
+                    // Store intended tab to redirect after login
+                    document.getElementById('login-section').dataset.target = tabId;
+                }
+            }
+        }
+
+        // --- Data Helpers ---
+        function parseDate(dateStr) {
+            if (!dateStr) return null;
+            dateStr = String(dateStr).trim();
+
+            // 1. Try ISO format (YYYY-MM-DD) natively
+            let d = new Date(dateStr);
+            if (!isNaN(d.getTime()) && dateStr.includes('-') && dateStr.split('-')[0].length === 4) {
+                if(d.getFullYear() > 2400) d.setFullYear(d.getFullYear() - 543);
+                return d;
+            }
+
+            // 2. Parse Thai Months and common formats
+            const thaiMonths = {
+                "ม.ค.":0, "มกราคม":0, "ก.พ.":1, "กุมภาพันธ์":1,
+                "มี.ค.":2, "มีนาคม":2, "เม.ย.":3, "เมษายน":3,
+                "พ.ค.":4, "พฤษภาคม":4, "มิ.ย.":5, "มิถุนายน":5,
+                "ก.ค.":6, "กรกฎาคม":6, "ส.ค.":7, "สิงหาคม":7,
+                "ก.ย.":8, "กันยายน":8, "ต.ค.":9, "ตุลาคม":9,
+                "พ.ย.":10, "พฤศจิกายน":10, "ธ.ค.":11, "ธันวาคม":11
+            };
+
+            let tempStr = dateStr;
+            for (let [th, num] of Object.entries(thaiMonths)) {
+                if (tempStr.includes(th)) {
+                    tempStr = tempStr.replace(th, `/${num + 1}/`);
+                    break;
+                }
+            }
+
+            // Clean up delimiters
+            tempStr = tempStr.replace(/\s+/g, '/').replace(/[\-\.]/g, '/').replace(/\/+/g, '/');
+
+            let parts = tempStr.split('/');
+            if (parts.length >= 3) {
+                let day = parseInt(parts[0], 10);
+                let month = parseInt(parts[1], 10) - 1;
+                let year = parseInt(parts[2], 10);
+
+                if (parts[0].length === 4) { // YYYY/MM/DD
+                    year = parseInt(parts[0], 10);
+                    month = parseInt(parts[1], 10) - 1;
+                    day = parseInt(parts[2], 10);
+                }
+
+                if (year > 2400) year -= 543; // BE to CE
+                if (year < 100) year += 2000; // 2-digit year
+
+                let parsedD = new Date(year, month, day);
+                if (!isNaN(parsedD.getTime())) return parsedD;
+            }
+
+            // Fallback
+            d = new Date(dateStr);
+            if (!isNaN(d.getTime())) {
+                if(d.getFullYear() > 2400) d.setFullYear(d.getFullYear() - 543);
+                return d;
+            }
+
+            return null;
+        }
+
+        function calculateYMD(start, end) {
+            if (!start || !end || isNaN(start) || isNaN(end)) return "-";
+            
+            let isNegative = false;
+            if (end < start) {
+                let temp = start; start = end; end = temp;
+                isNegative = true;
+            }
+
+            let years = end.getFullYear() - start.getFullYear();
+            let months = end.getMonth() - start.getMonth();
+            let days = end.getDate() - start.getDate();
+
+            if (days < 0) {
+                months--;
+                let prevMonth = new Date(end.getFullYear(), end.getMonth(), 0);
+                days += prevMonth.getDate();
+            }
+            if (months < 0) {
+                years--;
+                months += 12;
+            }
+            
+            let result = `${years} ปี ${months} เดือน ${days} วัน`;
+            return isNegative ? `เลยกำหนดแล้ว (${result})` : result;
+        }
+
+        function calculateAvgYears(dataArray, columns) {
+            if(!dataArray || dataArray.length === 0) return "0 ปี 0 เดือน";
+            if(!Array.isArray(columns)) columns = [columns];
+            
+            let totalDays = 0;
+            let count = 0;
+            let now = new Date();
+            
+            dataArray.forEach(row => {
+                let d = null;
+                for(let col of columns) {
+                    if(row[col]) {
+                        d = parseDate(row[col]);
+                        if(d) break;
+                    }
+                }
+                if (d) {
+                    let diffTime = now - d;
+                    if (diffTime > 0) {
+                        let diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                        totalDays += diffDays;
+                        count++;
+                    }
+                }
+            });
+
+            if (count === 0) return "0 ปี 0 เดือน";
+            let avgDays = totalDays / count;
+            let avgYears = Math.floor(avgDays / 365.25);
+            let avgMonths = Math.floor((avgDays % 365.25) / 30.44);
+            return `${avgYears} ปี ${avgMonths} เดือน`;
+        }
+
+        function getFrequencies(dataArray, column, excludeFilter = null) {
+            let counts = {};
+            if(!dataArray) return counts;
+            dataArray.forEach(row => {
+                if (excludeFilter && excludeFilter(row)) return;
+                let val = row[column] || 'ไม่ระบุ';
+                counts[val] = (counts[val] || 0) + 1;
+            });
+            return counts;
+        }
+
+        function formatThaiDate(dateStr) {
+            if (!dateStr) return '-';
+            let d = parseDate(dateStr);
+            if (!d) return dateStr;
+            const thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+            return `${d.getDate()} ${thaiMonths[d.getMonth()]} ${d.getFullYear() + 543}`;
+        }
+
+        // --- Dashboard (Tab 1) ---
+        function renderDashboard() {
+            const sheet1 = appData['1'] || [];
+            const sheet2 = appData['2'] || [];
+            const sheet4 = appData['4'] || [];
+
+            // Metrics
+            document.getElementById('metric-age').innerText = calculateAvgYears(sheet1, ['วันเดือนปีเกิด']);
+            
+            let svcAge = calculateAvgYears(sheet4, ['วันที่บรรจุ', 'วันที่เริ่มปฏิบัติราชการ']);
+            if (svcAge === "0 ปี 0 เดือน") svcAge = calculateAvgYears(sheet1, ['วันเข้าบรรจุ']);
+            document.getElementById('metric-service').innerText = svcAge;
+            
+            document.getElementById('metric-school').innerText = calculateAvgYears(sheet4, ['วันที่เข้าหน่วยงานปัจจุบัน']);
+
+            // Chart Colors
+            const pieColors = ['#E53E3E', '#ECC94B', '#DD6B20', '#3182CE', '#38A169', '#805AD5', '#D53F8C', '#718096'];
+
+            // 1. ตำแหน่ง (Sheet 4)
+            createChart('chartPositions', 'bar', getFrequencies(sheet4, 'ตำแหน่ง'), 'จำนวนบุคลากร', pieColors);
+            
+            // 2. เพศ (Sheet 1)
+            createChart('chartGender', 'doughnut', getFrequencies(sheet1, 'เพศ'), 'เพศ', ['#3182CE', '#D53F8C', '#ECC94B']);
+            
+            // 3. ศาสนา (Sheet 1)
+            createChart('chartReligion', 'pie', getFrequencies(sheet1, 'ศาสนา'), 'ศาสนา', pieColors);
+            
+            // 4. ระดับการศึกษา และ วุฒิการศึกษาสูงสุด (Sheet 2)
+            createChart('chartEduLevel', 'doughnut', getFrequencies(sheet2, 'ระดับการศึกษา'), 'ระดับการศึกษา', pieColors);
+            createChart('chartEducation', 'bar', getFrequencies(sheet2, 'วุฒิการศึกษาสูงสุด'), 'จำนวน', pieColors);
+
+            // 5. กลุ่มวิชาเอก (Sheet 2) - เงื่อนไขพิเศษ นับวิชาเอกที่ซ้ำในคนเดียวกันเพียง 1 วิชาเท่านั้น
+            const excludeNames = ['นางสาวศิริยา อินทกาโมทย์', 'นายจักรพงศ์ จันทวงศ์'];
+            let majorCounts = {};
+            let personMajors = {}; 
+            
+            sheet2.forEach(row => {
+                let name = String(row['ชื่อ-สกุล']).trim();
+                let major = row['กลุ่มวิชาเอก'] || 'ไม่ระบุ';
+                if (excludeNames.includes(name)) return;
+                
+                if (!personMajors[name]) personMajors[name] = new Set();
+                personMajors[name].add(major); // Set จะตัดข้อมูลวิชาเอกที่ซ้ำกันในคนเดียวกันออกให้อัตโนมัติ
+            });
+
+            // นับผลรวมวิชาเอกทั้งหมดที่ถูกกรองแล้ว
+            for (let name in personMajors) {
+                personMajors[name].forEach(m => {
+                    majorCounts[m] = (majorCounts[m] || 0) + 1;
+                });
+            }
+            createChart('chartMajor', 'pie', majorCounts, 'กลุ่มวิชาเอก', pieColors);
+
+            // 6. วิทยฐานะ (Sheet 4)
+            createChart('chartAcademic', 'doughnut', getFrequencies(sheet4, 'วิทยฐานะ'), 'จำนวน', pieColors);
+        }
+
+        function createChart(canvasId, type, dataObj, label, colors) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            if (chartInstances[canvasId]) chartInstances[canvasId].destroy();
+
+            const labels = Object.keys(dataObj);
+            const data = Object.values(dataObj);
+
+            chartInstances[canvasId] = new Chart(ctx, {
+                type: type,
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: label,
+                        data: data,
+                        backgroundColor: colors,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { position: type==='bar' ? 'none' : 'bottom' } },
+                    scales: type === 'bar' ? { y: { beginAtZero: true, ticks: { stepSize: 1 } } } : {}
+                }
+            });
+        }
+
+        // --- Authentication ---
+        function login() {
+            const idCard = document.getElementById('id-input').value.trim();
+            const sheet1 = appData['1'] || [];
+            
+            const userRow = sheet1.find(row => String(row['เลขบัตรประชาชน']).replace(/\D/g, '') === idCard.replace(/\D/g, ''));
+            
+            if (userRow) {
+                document.getElementById('login-error').classList.add('hidden');
+                document.getElementById('id-input').value = '';
+                
+                const fullName = String(userRow['ชื่อ-สกุล']).trim();
+                const cleanName = fullName.replace(/\s+/g, ' ');
+
+                const findByName = (sheet) => (sheet || []).find(r => String(r['ชื่อ-สกุล']).replace(/\s+/g, ' ').trim() === cleanName) || {};
+                const filterByName = (sheet) => (sheet || []).filter(r => String(r['ชื่อ-สกุล']).replace(/\s+/g, ' ').trim() === cleanName) || [];
+                
+                // Aggregate user data from all sheets
+                currentUser = {
+                    name: fullName,
+                    s1: userRow,
+                    s2: filterByName(appData['2']), // เก็บเป็น Array สำหรับกรณีมีหลายวุฒิ
+                    s3: filterByName(appData['3']), // เก็บเป็น Array สำหรับกรณีมีหลายใบอนุญาต
+                    s4: findByName(appData['4']),
+                    s5: filterByName(appData['5']),
+                    s6: filterByName(appData['6'])
+                };
+
+                document.getElementById('p-name').innerText = fullName;
+                document.getElementById('t-name').innerText = fullName;
+
+                const targetTab = document.getElementById('login-section').dataset.target || 'tab2';
+                switchTab(targetTab);
+            } else {
+                document.getElementById('login-error').classList.remove('hidden');
+            }
+        }
+
+        function logout() {
+            currentUser = null;
+            switchTab('tab1');
+        }
+
+        // --- Personal Info (Tab 2) ---
+        function renderPersonalInfo() {
+            const container = document.getElementById('personal-data-container');
+            let html = '';
+
+            // Card 1: ข้อมูลพื้นฐาน
+            html += `
+                <div class="glass-card p-5">
+                    <h3 class="text-lg font-bold text-mkred-800 border-b-2 border-mkyellow-400 pb-2 mb-3"><i class="fas fa-address-card mr-2"></i>ข้อมูลพื้นฐาน</h3>
+                    <div class="space-y-2 text-sm">
+                        <p><span class="font-bold text-gray-600">ชื่อ-สกุล:</span> ${currentUser.s1['ชื่อ-สกุล']}</p>
+                        <p><span class="font-bold text-gray-600">วันเกิด:</span> ${formatThaiDate(currentUser.s1['วันเดือนปีเกิด'])}</p>
+                        <p><span class="font-bold text-gray-600">เพศ/ศาสนา:</span> ${currentUser.s1['เพศ'] || '-'} / ${currentUser.s1['ศาสนา'] || '-'}</p>
+                        <p><span class="font-bold text-gray-600">หมู่เลือด:</span> ${currentUser.s1['หมู่เลือด'] || '-'}</p>
+                        <p><span class="font-bold text-gray-600">เบอร์โทรศัพท์:</span> ${currentUser.s1['เบอร์โทรศัพท์'] || '-'}</p>
+                        <p><span class="font-bold text-gray-600">E-mail:</span> ${currentUser.s1['E-mail'] || '-'}</p>
+                    </div>
+                </div>
+            `;
+
+            // Card 2: การศึกษา (Sheet 2) - รองรับหลายวุฒิการศึกษา
+            let eduHtml = '';
+            if (currentUser.s2.length > 0) {
+                currentUser.s2.forEach((edu, index) => {
+                    eduHtml += `
+                        <div class="${index > 0 ? 'border-t border-gray-200 mt-3 pt-3' : ''} space-y-1">
+                            <p><span class="font-bold text-gray-600">ระดับการศึกษา:</span> ${edu['ระดับการศึกษา'] || '-'}</p>
+                            <p><span class="font-bold text-gray-600">วุฒิการศึกษา:</span> ${edu['วุฒิการศึกษา'] || '-'}</p>
+                            <p><span class="font-bold text-gray-600">สาขาวิชาเอก:</span> ${edu['สาขาวิชาเอก'] || '-'}</p>
+                        </div>
+                    `;
+                });
+            } else {
+                eduHtml = '<p class="text-gray-500">- ไม่มีข้อมูล -</p>';
+            }
+
+            html += `
+                <div class="glass-card p-5">
+                    <h3 class="text-lg font-bold text-mkred-800 border-b-2 border-mkyellow-400 pb-2 mb-3"><i class="fas fa-graduation-cap mr-2"></i>การศึกษา</h3>
+                    <div class="text-sm">
+                        ${eduHtml}
+                    </div>
+                </div>
+            `;
+
+            // Card 3: การทำงานและตำแหน่ง (Sheet 4)
+            html += `
+                <div class="glass-card p-5">
+                    <h3 class="text-lg font-bold text-mkred-800 border-b-2 border-mkyellow-400 pb-2 mb-3"><i class="fas fa-briefcase mr-2"></i>การทำงานและตำแหน่ง</h3>
+                    <div class="space-y-2 text-sm">
+                        <p><span class="font-bold text-gray-600">ตำแหน่ง:</span> ${currentUser.s4['ตำแหน่ง'] || '-'}</p>
+                        <p><span class="font-bold text-gray-600">วิทยฐานะ:</span> ${currentUser.s4['วิทยฐานะ'] || '-'}</p>
+                        <p><span class="font-bold text-gray-600">ประเภทบุคลากร:</span> ${currentUser.s4['ประเภทบุคลากร'] || '-'}</p>
+                        <p><span class="font-bold text-gray-600">เลขที่ตำแหน่ง:</span> ${currentUser.s4['เลขที่ตำแหน่ง'] || '-'}</p>
+                        <p><span class="font-bold text-gray-600">เงินเดือน:</span> ${currentUser.s4['เงินเดือน'] ? Number(currentUser.s4['เงินเดือน']).toLocaleString() + ' บาท' : '-'}</p>
+                    </div>
+                </div>
+            `;
+
+            // Card 4: ใบอนุญาตประกอบวิชาชีพ (Sheet 3) - รองรับหลายใบอนุญาต
+            let licHtml = '';
+            if (currentUser.s3.length > 0) {
+                currentUser.s3.forEach((lic, index) => {
+                    licHtml += `
+                        <div class="${index > 0 ? 'border-t border-gray-200 mt-3 pt-3' : ''} space-y-1">
+                            <p><span class="font-bold text-gray-600">ประเภท:</span> ${lic['ประเภทใบอนุญาต'] || '-'}</p>
+                            <p><span class="font-bold text-gray-600">เลขที่:</span> ${lic['เลขที่ใบอนุญาต'] || '-'}</p>
+                        </div>
+                    `;
+                });
+            } else {
+                licHtml = '<p class="text-gray-500">- ไม่มีข้อมูล -</p>';
+            }
+
+            html += `
+                <div class="glass-card p-5">
+                    <h3 class="text-lg font-bold text-mkred-800 border-b-2 border-mkyellow-400 pb-2 mb-3"><i class="fas fa-certificate mr-2"></i>ใบอนุญาตประกอบวิชาชีพ</h3>
+                    <div class="text-sm">
+                        ${licHtml}
+                    </div>
+                </div>
+            `;
+            
+             // Card 5: เครื่องราชอิสริยาภรณ์ (Sheet 6)
+             let decHtml = '';
+             if(currentUser.s6.length > 0) {
+                 currentUser.s6.forEach(d => {
+                     decHtml += `<li class="border-b border-gray-100 py-1">- ${d['ชั้นตรา']} (ปี ${d['ประจำปี']})</li>`;
+                 });
+             } else { decHtml = '<li>- ไม่มีข้อมูล -</li>'; }
+
+             html += `
+                <div class="glass-card p-5 md:col-span-2">
+                    <h3 class="text-lg font-bold text-mkred-800 border-b-2 border-mkyellow-400 pb-2 mb-3"><i class="fas fa-medal mr-2"></i>เครื่องราชอิสริยาภรณ์</h3>
+                    <ul class="text-sm text-gray-700 space-y-1">${decHtml}</ul>
+                </div>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        // --- Time Calculation (Tab 3) ---
+        function calculateAllTimes() {
+            if (!currentUser) return;
+            const targetDate = new Date(document.getElementById('target-date').value);
+            const container = document.getElementById('time-data-container');
+            
+            const getVal = (obj, cols) => {
+                for(let c of cols) { if(obj[c]) return obj[c]; }
+                return null;
+            };
+
+            const timesToCalc = [
+                { title: "อายุปัจจุบัน", dateStr: getVal(currentUser.s1, ['วันเดือนปีเกิด']), icon: "fa-birthday-cake", reverse: false },
+                { title: "อายุราชการ", dateStr: getVal(currentUser.s1, ['วันเข้าบรรจุ']) || getVal(currentUser.s4, ['วันที่บรรจุ']), icon: "fa-briefcase", reverse: false },
+                { title: "อายุราชการ ณ รร. ปัจจุบัน", dateStr: getVal(currentUser.s4, ['วันที่เข้าหน่วยงานปัจจุบัน']), icon: "fa-school", reverse: false },
+                { title: "ระยะเวลาที่ครองวิทยฐานะปัจจุบัน", dateStr: getVal(currentUser.s4, ['วันที่ดำรงตำแหน่งวิทยฐานะ']), icon: "fa-star", reverse: false },
+                { title: "เวลาที่เหลือก่อนเกษียณ", dateStr: getVal(currentUser.s1, ['วันเกษียณอายุ']), icon: "fa-hourglass-half", reverse: true }
+            ];
+
+            // ดึงใบอนุญาตทั้งหมดมาคำนวณเวลาที่เหลือ
+            if (currentUser.s3 && currentUser.s3.length > 0) {
+                currentUser.s3.forEach(lic => {
+                    let licType = lic['ประเภทใบอนุญาต'] || 'ไม่ระบุประเภท';
+                    timesToCalc.push({
+                        title: `เวลาที่เหลือของใบอนุญาตฯ<br><span class="text-xs text-mkred-600">(${licType})</span>`,
+                        dateStr: lic['วันเดือนปีที่หมดอายุ'],
+                        icon: "fa-id-badge",
+                        reverse: true,
+                        isLicense: true
+                    });
+                });
+            }
+
+            let html = '';
+            
+            timesToCalc.forEach(item => {
+                let d = parseDate(item.dateStr);
+                let result = "-";
+                let warningHtml = "";
+
+                if (d) {
+                    if (item.reverse) {
+                        result = calculateYMD(targetDate, d); // Target to Future Date
+                    } else {
+                        result = calculateYMD(d, targetDate); // Past Date to Target
+                    }
+
+                    // แจ้งเตือนถ้าเป็นใบอนุญาตและเหลือน้อยกว่า 6 เดือน (หรือเลยกำหนดแล้ว)
+                    if (item.isLicense) {
+                        let sixMonthsLater = new Date(targetDate);
+                        sixMonthsLater.setMonth(sixMonthsLater.getMonth() + 6);
+                        if (d < sixMonthsLater) {
+                            warningHtml = `<p class="text-sm font-bold text-red-600 animate-pulse mt-1"><i class="fas fa-exclamation-triangle mr-1"></i> โปรดต่อใบอนุญาต!!!</p>`;
+                        }
+                    }
+                }
+                
+                html += `
+                    <div class="glass-card p-4 flex items-center shadow-sm hover:shadow-md transition">
+                        <div class="bg-mkred-100 p-3 rounded-full mr-4 text-mkred-700">
+                            <i class="fas ${item.icon} text-2xl w-8 text-center"></i>
+                        </div>
+                        <div>
+                            <p class="text-gray-500 text-sm font-bold">${item.title}</p>
+                            <p class="text-lg font-bold text-gray-800 mt-1">${result}</p>
+                            ${warningHtml}
+                        </div>
+                    </div>
+                `;
+            });
+
+            // เครื่องราชฯ (หาอันล่าสุด)
+            if(currentUser.s6.length > 0) {
+                 // Sort by date descending
+                 let validDec = currentUser.s6.filter(r => parseDate(r['วันที่ประกาศในราชกิจจา']));
+                 if(validDec.length > 0) {
+                    validDec.sort((a,b) => parseDate(b['วันที่ประกาศในราชกิจจา']) - parseDate(a['วันที่ประกาศในราชกิจจา']));
+                    let latestDec = validDec[0];
+                    let decResult = calculateYMD(parseDate(latestDec['วันที่ประกาศในราชกิจจา']), targetDate);
+                    
+                    html += `
+                        <div class="glass-card p-4 flex items-center shadow-sm hover:shadow-md transition border-l-4 border-mkyellow-500">
+                            <div class="bg-mkyellow-100 p-3 rounded-full mr-4 text-mkyellow-600">
+                                <i class="fas fa-medal text-2xl w-8 text-center"></i>
+                            </div>
+                            <div>
+                                <p class="text-gray-500 text-sm font-bold">ระยะเวลาที่ได้รับเครื่องราชฯ ล่าสุด</p>
+                                <p class="text-sm font-bold text-gray-600 truncate w-48">${latestDec['ชั้นตรา']}</p>
+                                <p class="text-lg font-bold text-mkred-800">${decResult}</p>
+                            </div>
+                        </div>
+                    `;
+                 }
+            }
+
+            container.innerHTML = html;
+        }
+
+    </script>
+</body>
+</html>
