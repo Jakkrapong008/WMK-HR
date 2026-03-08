@@ -111,7 +111,7 @@
                 <div class="glass-card p-4"><h3 class="text-center font-bold text-mkred-800 mb-2">สรุปจำนวนบุคลากรตามตำแหน่ง</h3><canvas id="chartPositions"></canvas></div>
                 <div class="glass-card p-4"><h3 class="text-center font-bold text-mkred-800 mb-2">สัดส่วนเพศ</h3><canvas id="chartGender"></canvas></div>
                 <div class="glass-card p-4"><h3 class="text-center font-bold text-mkred-800 mb-2">สัดส่วนศาสนา</h3><canvas id="chartReligion"></canvas></div>
-                <div class="glass-card p-4"><h3 class="text-center font-bold text-mkred-800 mb-2">ระดับการศึกษา</h3><canvas id="chartEduLevel"></canvas></div>
+                <div class="glass-card p-4"><h3 class="text-center font-bold text-mkred-800 mb-2">ระดับการศึกษารวม</h3><canvas id="chartEduLevel"></canvas></div>
                 <div class="glass-card p-4"><h3 class="text-center font-bold text-mkred-800 mb-2">วุฒิการศึกษาสูงสุด</h3><canvas id="chartEducation"></canvas></div>
                 <div class="glass-card p-4"><h3 class="text-center font-bold text-mkred-800 mb-2">กลุ่มวิชาเอก</h3><canvas id="chartMajor"></canvas></div>
                 <div class="glass-card p-4"><h3 class="text-center font-bold text-mkred-800 mb-2">วิทยฐานะ</h3><canvas id="chartAcademic"></canvas></div>
@@ -388,9 +388,11 @@
             // 3. ศาสนา (Sheet 1)
             createChart('chartReligion', 'pie', getFrequencies(sheet1, 'ศาสนา'), 'ศาสนา', pieColors);
             
-            // 4. ระดับการศึกษา และ วุฒิการศึกษาสูงสุด (Sheet 2)
+            // 4. ระดับการศึกษารวม และ วุฒิการศึกษาสูงสุด (Sheet 2)
             createChart('chartEduLevel', 'doughnut', getFrequencies(sheet2, 'ระดับการศึกษา'), 'ระดับการศึกษา', pieColors);
-            createChart('chartEducation', 'bar', getFrequencies(sheet2, 'วุฒิการศึกษาสูงสุด'), 'จำนวน', pieColors);
+            
+            // วุฒิการศึกษาสูงสุด (นับทุกแถวที่มีข้อมูล โดยไม่กรองชื่อซ้ำ)
+            createChart('chartEducation', 'bar', getFrequencies(sheet2, 'วุฒิการศึกษาสูงสุด', r => !r['วุฒิการศึกษาสูงสุด'] || r['วุฒิการศึกษาสูงสุด'].trim() === ''), 'จำนวน', pieColors);
 
             // 5. กลุ่มวิชาเอก (Sheet 2) - เงื่อนไขพิเศษ นับวิชาเอกที่ซ้ำในคนเดียวกันเพียง 1 วิชาเท่านั้น
             const excludeNames = ['นางสาวศิริยา อินทกาโมทย์', 'นายจักรพงศ์ จันทวงศ์'];
@@ -438,7 +440,20 @@
                 },
                 options: {
                     responsive: true,
-                    plugins: { legend: { position: type==='bar' ? 'none' : 'bottom' } },
+                    plugins: { 
+                        legend: { position: type==='bar' ? 'none' : 'bottom' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let val = context.raw;
+                                    let datasetData = context.chart.data.datasets[context.datasetIndex].data;
+                                    let total = datasetData.reduce((acc, curr) => acc + curr, 0);
+                                    let percentage = total > 0 ? ((val / total) * 100).toFixed(1).replace(/\.0$/, '') : 0;
+                                    return ` จำนวน: ${val} (ร้อยละ ${percentage})`;
+                                }
+                            }
+                        }
+                    },
                     scales: type === 'bar' ? { y: { beginAtZero: true, ticks: { stepSize: 1 } } } : {}
                 }
             });
