@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ข้อมูลสารสนเทศทะเบียนประวัติข้าราชการ โรงเรียนวัดแม่กะ</title>
+    <title>ระบบทะเบียนประวัติข้าราชการและบุคลากรทางการศึกษา โรงเรียนวัดแม่กะ</title>
     
     <!-- Google Fonts: Sarabun -->
-    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -16,8 +16,8 @@
                 extend: {
                     fontFamily: { sans: ['Sarabun', 'sans-serif'] },
                     colors: {
-                        mkred: { 500: '#E53E3E', 600: '#C53030', 700: '#9B2C2C', 800: '#822727', 900: '#63171B' },
-                        mkyellow: { 400: '#ECC94B', 500: '#D69E2E', 600: '#B7791F' }
+                        mkred: { 50: '#fdf2f2', 100: '#fde8e8', 500: '#E53E3E', 600: '#C53030', 700: '#9B2C2C', 800: '#822727', 900: '#63171B' },
+                        mkyellow: { 100: '#fefcbf', 400: '#ECC94B', 500: '#D69E2E', 600: '#B7791F' }
                     }
                 }
             }
@@ -27,212 +27,959 @@
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
-    <!-- Font Awesome -->
+    <!-- Font Awesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
+    <!-- SheetJS (XLSX Export) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <style>
-        body { font-family: 'Sarabun', sans-serif; background-color: #f7fafc; }
-        .tab-btn { border-bottom: 4px solid transparent; }
-        .tab-btn.active { border-bottom: 4px solid #C53030; color: #C53030; font-weight: 700; background-color: #FEF2F2; }
-        .glass-card { background: rgba(255, 255, 255, 0.95); box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 0.75rem; border-top: 4px solid #C53030; }
-        #loader { background: rgba(255,255,255,0.9); z-index: 50; }
-        .spinner { border: 4px solid rgba(0, 0, 0, 0.1); width: 50px; height: 50px; border-radius: 50%; border-left-color: #C53030; animation: spin 1s linear infinite; }
+        body { font-family: 'Sarabun', sans-serif; background-color: #f8fafc; }
+        .tab-btn { border-bottom: 3px solid transparent; transition: all 0.2s ease; }
+        .tab-btn.active { border-bottom: 3px solid #C53030; color: #C53030; font-weight: 700; background-color: #FEF2F2; }
+        .glass-card { background: rgba(255, 255, 255, 0.98); box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-radius: 0.85rem; border-top: 4px solid #C53030; }
+        .spinner { border: 4px solid rgba(0, 0, 0, 0.1); width: 45px; height: 45px; border-radius: 50%; border-left-color: #C53030; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        [v-cloak] { display: none; }
+        
+        /* Print Profile */
+        @media print {
+            body * { visibility: hidden; }
+            #printable-area, #printable-area * { visibility: visible; }
+            #printable-area { position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 20px; font-size: 14px; background: white; }
+            .no-print { display: none !important; }
+        }
     </style>
 </head>
-<body class="text-gray-800 flex flex-col min-h-screen bg-gray-50">
+<body class="text-gray-800 flex flex-col min-h-screen bg-slate-50">
 
-    <!-- Loader -->
-    <div id="loader" class="fixed inset-0 flex flex-col items-center justify-center bg-white/90 z-50">
+    <!-- Loading Overlay -->
+    <div id="loader" class="fixed inset-0 flex flex-col items-center justify-center bg-white/95 z-50 transition-opacity">
         <div class="spinner mb-4"></div>
-        <h2 class="text-mkred-700 text-xl font-bold">กำลังโหลดข้อมูลสารสนเทศ...</h2>
-        <p class="text-gray-500">กรุณารอสักครู่</p>
+        <h2 class="text-mkred-700 text-lg font-bold">กำลังโหลดข้อมูลระบบสารสนเทศ...</h2>
+        <p class="text-gray-500 text-xs mt-1">โรงเรียนวัดแม่กะ สำนักงานเขตพื้นที่การศึกษาประถมศึกษา</p>
     </div>
 
-    <!-- Header: Centered Logo and Title -->
-    <header class="bg-mkred-800 text-white shadow-md pt-6 pb-4 flex-shrink-0">
-        <div class="container mx-auto px-4 flex flex-col items-center justify-center text-center">
-            <img src="https://img2.pic.in.th/logob0b7643db577ceee.png" alt="Logo" class="h-24 w-24 object-contain bg-white rounded-full p-1 border-4 border-mkyellow-400 shadow-lg mb-3">
-            <h1 class="text-2xl md:text-3xl font-bold text-mkyellow-400 mb-1">โรงเรียนวัดแม่กะ</h1>
-            <p class="text-sm md:text-base opacity-95">ข้อมูลสารสนเทศทะเบียนประวัติข้าราชการและบุคลากรทางการศึกษา</p>
+    <!-- Header Banner -->
+    <header class="bg-gradient-to-r from-mkred-900 via-mkred-800 to-mkred-900 text-white shadow-lg pt-5 pb-4 flex-shrink-0 relative overflow-hidden">
+        <div class="container mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex flex-col md:flex-row items-center gap-3 text-center md:text-left">
+                <img src="https://img2.pic.in.th/logob0b7643db577ceee.png" alt="Logo" class="h-16 w-16 md:h-20 md:w-20 object-contain bg-white rounded-full p-1 border-4 border-mkyellow-400 shadow-md">
+                <div>
+                    <h1 class="text-xl md:text-2xl font-extrabold text-mkyellow-400 tracking-wide">โรงเรียนวัดแม่กะ</h1>
+                    <p class="text-xs md:text-sm text-red-100 font-medium">ระบบสารสนเทศทะเบียนประวัติข้าราชการและบุคลากรทางการศึกษา</p>
+                </div>
+            </div>
+            
+            <!-- User Session / Refresh -->
+            <div class="flex items-center gap-3">
+                <div id="user-badge" class="hidden bg-mkred-900/80 backdrop-blur px-3 py-1.5 rounded-xl border border-red-700/60 flex items-center gap-2">
+                    <img id="header-avatar" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" class="w-8 h-8 rounded-full object-cover border border-amber-300">
+                    <div class="text-left text-xs">
+                        <p class="font-bold text-amber-300" id="header-username">ชื่อผู้ใช้</p>
+                        <span id="header-role" class="bg-red-700 text-white text-[10px] px-1.5 py-0.5 rounded">บุคลากร</span>
+                    </div>
+                </div>
+
+                <button onclick="fetchSheetData(true)" class="bg-mkred-700 hover:bg-mkred-600 text-white p-2 rounded-lg text-sm transition shadow" title="รีเฟรชข้อมูล">
+                    <i class="fas fa-sync-alt" id="refresh-icon"></i>
+                </button>
+
+                <button id="header-logout-btn" onclick="logout()" class="hidden bg-white/20 hover:bg-white/30 text-white text-xs px-3 py-2 rounded-lg font-bold transition flex items-center gap-1.5">
+                    <i class="fas fa-sign-out-alt"></i> <span>ออก</span>
+                </button>
+            </div>
         </div>
     </header>
 
-    <!-- Navigation Tabs: Centered -->
+    <!-- Navigation Bar: Dynamic Tabs based on Login Status -->
     <div class="bg-white shadow-sm sticky top-0 z-40 border-b border-gray-200">
         <div class="container mx-auto px-4">
-            <nav class="flex justify-center gap-2 md:gap-8 overflow-x-auto w-full">
-                <button onclick="switchTab('tab1')" id="btn-tab1" class="tab-btn active px-4 py-3 text-sm md:text-base whitespace-nowrap font-medium text-gray-600 hover:text-mkred-700 transition">
-                    <i class="fas fa-chart-pie mr-1"></i> สารสนเทศองค์กร
+            <nav id="nav-tabs" class="flex justify-start md:justify-center gap-1 md:gap-3 overflow-x-auto w-full py-1">
+                <!-- Tab 1: Organization Dashboard (Always visible) -->
+                <button onclick="switchTab('tab1')" id="btn-tab1" class="tab-btn active px-4 py-3 text-xs md:text-sm whitespace-nowrap font-medium text-gray-600 hover:text-mkred-700 transition flex items-center gap-2">
+                    <i class="fas fa-chart-pie text-mkred-600"></i> <span>สารสนเทศองค์กร</span>
                 </button>
-                <button onclick="switchTab('tab2')" id="btn-tab2" class="tab-btn px-4 py-3 text-sm md:text-base whitespace-nowrap font-medium text-gray-600 hover:text-mkred-700 transition">
-                    <i class="fas fa-id-card mr-1"></i> ข้อมูลส่วนบุคคล
+
+                <!-- Tab Login: Visible ONLY before login -->
+                <button onclick="switchTab('tab-login')" id="btn-tab-login" class="tab-btn px-4 py-3 text-xs md:text-sm whitespace-nowrap font-medium text-gray-600 hover:text-mkred-700 transition flex items-center gap-2">
+                    <i class="fas fa-lock text-amber-500"></i> <span>เข้าสู่ระบบ</span>
                 </button>
-                <button onclick="switchTab('tab3')" id="btn-tab3" class="tab-btn px-4 py-3 text-sm md:text-base whitespace-nowrap font-medium text-gray-600 hover:text-mkred-700 transition">
-                    <i class="fas fa-clock mr-1"></i> ข้อมูลการนับเวลา
+
+                <!-- Protected Tabs: Visible ONLY after login -->
+                <button onclick="switchTab('tab-personnel')" id="btn-tab-personnel" class="tab-btn hidden px-4 py-3 text-xs md:text-sm whitespace-nowrap font-medium text-gray-600 hover:text-mkred-700 transition flex items-center gap-2">
+                    <i class="fas fa-users text-blue-600"></i> <span>ทะเบียนประวัติบุคลากร</span>
+                </button>
+                <button onclick="switchTab('tab-personal')" id="btn-tab-personal" class="tab-btn hidden px-4 py-3 text-xs md:text-sm whitespace-nowrap font-medium text-gray-600 hover:text-mkred-700 transition flex items-center gap-2">
+                    <i class="fas fa-id-card text-emerald-600"></i> <span>ข้อมูลส่วนบุคคล</span>
+                </button>
+                <button onclick="switchTab('tab-time')" id="btn-tab-time" class="tab-btn hidden px-4 py-3 text-xs md:text-sm whitespace-nowrap font-medium text-gray-600 hover:text-mkred-700 transition flex items-center gap-2">
+                    <i class="fas fa-clock text-purple-600"></i> <span>การนับเวลาปฏิบัติราชการ</span>
+                </button>
+                <button onclick="switchTab('tab-settings')" id="btn-tab-settings" class="tab-btn hidden px-4 py-3 text-xs md:text-sm whitespace-nowrap font-medium text-gray-600 hover:text-mkred-700 transition flex items-center gap-2">
+                    <i class="fas fa-cog text-gray-600"></i> <span>ตั้งค่า</span>
                 </button>
             </nav>
         </div>
     </div>
 
-    <!-- Main Content Area -->
-    <main class="flex-grow overflow-y-auto p-4 md:p-6 container mx-auto">
+    <!-- Main Workspace Container -->
+    <main class="flex-grow overflow-y-auto p-4 md:p-6 container mx-auto max-w-7xl">
         
-        <!-- ================= TAB 1: Dashboard ================= -->
+        <!-- ================= TAB 1: Organization Dashboard ================= -->
         <section id="tab1" class="space-y-6">
-            <!-- Summary Metrics -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="glass-card p-4 flex items-center justify-between">
+            <!-- Key Metrics Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="glass-card p-5 flex items-center justify-between">
                     <div>
-                        <p class="text-gray-500 text-sm font-semibold">อายุเฉลี่ยบุคลากร</p>
-                        <h3 class="text-3xl font-bold text-mkred-700" id="metric-age">-</h3>
+                        <p class="text-gray-500 text-xs font-bold uppercase tracking-wider">บุคลากรทั้งหมด</p>
+                        <h3 class="text-3xl font-extrabold text-mkred-700 mt-1" id="metric-total">-</h3>
+                        <p class="text-xs text-gray-400 mt-1">คนในโรงเรียน</p>
                     </div>
-                    <i class="fas fa-users text-4xl text-mkyellow-500 opacity-50"></i>
+                    <div class="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-mkred-600">
+                        <i class="fas fa-users text-2xl"></i>
+                    </div>
                 </div>
-                <div class="glass-card p-4 flex items-center justify-between">
+
+                <div class="glass-card p-5 flex items-center justify-between">
                     <div>
-                        <p class="text-gray-500 text-sm font-semibold">อายุราชการเฉลี่ย</p>
-                        <h3 class="text-3xl font-bold text-mkred-700" id="metric-service">-</h3>
+                        <p class="text-gray-500 text-xs font-bold uppercase tracking-wider">อายุเฉลี่ย</p>
+                        <h3 class="text-3xl font-extrabold text-mkred-700 mt-1" id="metric-age">-</h3>
+                        <p class="text-xs text-gray-400 mt-1">คำนวณจากวันเกิด</p>
                     </div>
-                    <i class="fas fa-briefcase text-4xl text-mkyellow-500 opacity-50"></i>
+                    <div class="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
+                        <i class="fas fa-birthday-cake text-2xl"></i>
+                    </div>
                 </div>
-                <div class="glass-card p-4 flex items-center justify-between">
+
+                <div class="glass-card p-5 flex items-center justify-between">
                     <div>
-                        <p class="text-gray-500 text-sm font-semibold">อายุราชการ ณ รร. ปัจจุบัน (เฉลี่ย)</p>
-                        <h3 class="text-3xl font-bold text-mkred-700" id="metric-school">-</h3>
+                        <p class="text-gray-500 text-xs font-bold uppercase tracking-wider">อายุราชการเฉลี่ย</p>
+                        <h3 class="text-3xl font-extrabold text-mkred-700 mt-1" id="metric-service">-</h3>
+                        <p class="text-xs text-gray-400 mt-1">คำนวณจากวันบรรจุ</p>
                     </div>
-                    <i class="fas fa-school text-4xl text-mkyellow-500 opacity-50"></i>
+                    <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                        <i class="fas fa-briefcase text-2xl"></i>
+                    </div>
+                </div>
+
+                <div class="glass-card p-5 flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-xs font-bold uppercase tracking-wider">อายุราชการ รร. ปัจจุบัน</p>
+                        <h3 class="text-3xl font-extrabold text-mkred-700 mt-1" id="metric-school">-</h3>
+                        <p class="text-xs text-gray-400 mt-1">เฉลี่ย ณ รร.วัดแม่กะ</p>
+                    </div>
+                    <div class="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+                        <i class="fas fa-school text-2xl"></i>
+                    </div>
                 </div>
             </div>
 
-            <!-- Charts Grid -->
+            <!-- Analytical Charts -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div class="glass-card p-4"><h3 class="text-center font-bold text-mkred-800 mb-2">สรุปจำนวนบุคลากรตามตำแหน่ง</h3><canvas id="chartPositions"></canvas></div>
-                <div class="glass-card p-4"><h3 class="text-center font-bold text-mkred-800 mb-2">สัดส่วนเพศ</h3><canvas id="chartGender"></canvas></div>
-                <div class="glass-card p-4"><h3 class="text-center font-bold text-mkred-800 mb-2">สัดส่วนศาสนา</h3><canvas id="chartReligion"></canvas></div>
-                <div class="glass-card p-4"><h3 class="text-center font-bold text-mkred-800 mb-2">ระดับการศึกษารวม</h3><canvas id="chartEduLevel"></canvas></div>
-                <div class="glass-card p-4"><h3 class="text-center font-bold text-mkred-800 mb-2">วุฒิการศึกษาสูงสุด</h3><canvas id="chartEducation"></canvas></div>
-                <div class="glass-card p-4"><h3 class="text-center font-bold text-mkred-800 mb-2">กลุ่มวิชาเอก</h3><canvas id="chartMajor"></canvas></div>
-                <div class="glass-card p-4"><h3 class="text-center font-bold text-mkred-800 mb-2">วิทยฐานะ</h3><canvas id="chartAcademic"></canvas></div>
+                <div class="glass-card p-4">
+                    <h3 class="text-center font-bold text-mkred-800 mb-3 pb-2 border-b text-sm flex items-center justify-center gap-2"><i class="fas fa-user-tie text-mkred-600"></i> สรุปตามตำแหน่ง</h3>
+                    <div class="h-60"><canvas id="chartPositions"></canvas></div>
+                </div>
+                <div class="glass-card p-4">
+                    <h3 class="text-center font-bold text-mkred-800 mb-3 pb-2 border-b text-sm flex items-center justify-center gap-2"><i class="fas fa-venus-mars text-mkred-600"></i> สัดส่วนเพศ</h3>
+                    <div class="h-60"><canvas id="chartGender"></canvas></div>
+                </div>
+                <div class="glass-card p-4">
+                    <h3 class="text-center font-bold text-mkred-800 mb-3 pb-2 border-b text-sm flex items-center justify-center gap-2"><i class="fas fa-hands-praying text-mkred-600"></i> สัดส่วนศาสนา</h3>
+                    <div class="h-60"><canvas id="chartReligion"></canvas></div>
+                </div>
+                <div class="glass-card p-4">
+                    <h3 class="text-center font-bold text-mkred-800 mb-3 pb-2 border-b text-sm flex items-center justify-center gap-2"><i class="fas fa-graduation-cap text-mkred-600"></i> ระดับการศึกษารวม</h3>
+                    <div class="h-60"><canvas id="chartEduLevel"></canvas></div>
+                </div>
+                <div class="glass-card p-4">
+                    <h3 class="text-center font-bold text-mkred-800 mb-3 pb-2 border-b text-sm flex items-center justify-center gap-2"><i class="fas fa-user-graduate text-mkred-600"></i> วุฒิการศึกษาสูงสุด</h3>
+                    <div class="h-60"><canvas id="chartEducation"></canvas></div>
+                </div>
+                <div class="glass-card p-4">
+                    <h3 class="text-center font-bold text-mkred-800 mb-3 pb-2 border-b text-sm flex items-center justify-center gap-2"><i class="fas fa-book-open text-mkred-600"></i> สรุปกลุ่มวิชาเอก</h3>
+                    <div class="h-60"><canvas id="chartMajor"></canvas></div>
+                </div>
+                <div class="glass-card p-4 md:col-span-2 lg:col-span-3">
+                    <h3 class="text-center font-bold text-mkred-800 mb-3 pb-2 border-b text-sm flex items-center justify-center gap-2"><i class="fas fa-award text-mkred-600"></i> สรุปวิทยฐานะบุคลากร</h3>
+                    <div class="h-60 max-w-xl mx-auto"><canvas id="chartAcademic"></canvas></div>
+                </div>
             </div>
         </section>
 
-        <!-- Login Overlay for Tab 2 & 3 -->
-        <div id="login-section" class="hidden flex flex-col items-center justify-center mt-10">
-            <div class="glass-card p-8 max-w-md w-full text-center">
-                <i class="fas fa-lock text-5xl text-mkred-600 mb-4"></i>
-                <h2 class="text-2xl font-bold text-mkred-800 mb-2">ระบบรักษาความปลอดภัย</h2>
-                <p class="text-gray-600 mb-6">กรุณากรอกเลขบัตรประจำตัวประชาชน 13 หลัก เพื่อดูข้อมูลส่วนบุคคลและการนับเวลา</p>
-                <input type="password" id="id-input" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-mkred-500 text-center text-xl tracking-widest mb-4" placeholder="X-XXXX-XXXXX-XX-X" maxlength="13">
-                <button onclick="login()" class="w-full bg-mkred-700 hover:bg-mkred-800 text-white font-bold py-2 px-4 rounded-lg transition duration-200">เข้าสู่ระบบ</button>
-                <p id="login-error" class="text-red-500 text-sm mt-3 hidden">ไม่พบข้อมูล หรือ เลขบัตรประชาชนไม่ถูกต้อง</p>
-            </div>
-        </div>
+        <!-- ================= TAB: Login (Before Login) ================= -->
+        <section id="tab-login" class="hidden flex flex-col items-center justify-center py-10">
+            <div class="glass-card p-8 max-w-md w-full text-center border-t-8 border-mkred-700 shadow-xl">
+                <div class="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 text-mkred-700 shadow-inner">
+                    <i class="fas fa-shield-alt text-4xl"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-mkred-800 mb-1">เข้าสู่ระบบสารสนเทศ</h2>
+                <p class="text-gray-500 text-xs mb-6">กรอกข้อมูลผู้ใช้งานเพื่อเข้าดูและจัดการทะเบียนประวัติ</p>
+                
+                <form onsubmit="event.preventDefault(); submitLogin();" class="space-y-4 text-left">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">ชื่อผู้ใช้ (Username):</label>
+                        <div class="relative">
+                            <i class="fas fa-user absolute left-3 top-3 text-gray-400"></i>
+                            <input type="text" id="login-username" required class="w-full pl-9 pr-3 py-2.5 border rounded-xl text-sm focus:ring-2 focus:ring-mkred-500 focus:outline-none" placeholder="เลขบัตร ปชช. 13 หลัก หรือ adminwmk">
+                        </div>
+                        <p class="text-[11px] text-gray-400 mt-1">* บุคลากรทั่วไป: ใช้เลขประจำตัวประชาชน 13 หลัก</p>
+                    </div>
 
-        <!-- ================= TAB 2: Personal Info ================= -->
-        <section id="tab2" class="hidden space-y-6">
-            <div class="flex justify-between items-center bg-mkyellow-400 p-4 rounded-lg shadow">
-                <h2 class="text-xl font-bold text-mkred-900"><i class="fas fa-user-circle mr-2"></i>ข้อมูลส่วนบุคคล: <span id="p-name"></span></h2>
-                <button onclick="logout()" class="text-mkred-800 hover:text-red-900 font-bold text-sm bg-white px-3 py-1 rounded"><i class="fas fa-sign-out-alt mr-1"></i>ออกจากระบบ</button>
-            </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">รหัสผ่าน (Password):</label>
+                        <div class="relative">
+                            <i class="fas fa-key absolute left-3 top-3 text-gray-400"></i>
+                            <input type="password" id="login-password" required class="w-full pl-9 pr-10 py-2.5 border rounded-xl text-sm focus:ring-2 focus:ring-mkred-500 focus:outline-none" placeholder="รหัสผ่านเริ่มต้น 123456">
+                            <button type="button" onclick="togglePasswordVisibility('login-password', this)" class="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="personal-data-container">
-                <!-- Data will be injected here via JS -->
+                    <button type="submit" id="btn-login-submit" class="w-full bg-mkred-700 hover:bg-mkred-800 text-white font-bold py-2.5 px-4 rounded-xl shadow-md hover:shadow-lg transition text-sm flex items-center justify-center gap-2">
+                        <i class="fas fa-sign-in-alt"></i> <span>เข้าสู่ระบบ</span>
+                    </button>
+                </form>
+
+                <div class="mt-6 pt-4 border-t text-xs text-gray-400 space-y-1">
+                    <p>• บุคลากรทั่วไป: รหัสผ่านเริ่มต้นคือ <span class="font-mono font-bold text-gray-600">123456</span></p>
+                    <p>• ผู้ดูแลระบบ: username <span class="font-mono font-bold text-gray-600">adminwmk</span></p>
+                </div>
             </div>
         </section>
 
-        <!-- ================= TAB 3: Time Calculation ================= -->
-        <section id="tab3" class="hidden space-y-6">
-            <div class="flex flex-col md:flex-row justify-between items-center bg-mkyellow-400 p-4 rounded-lg shadow gap-4">
-                <h2 class="text-xl font-bold text-mkred-900"><i class="fas fa-calculator mr-2"></i>ข้อมูลการนับเวลา: <span id="t-name"></span></h2>
-                <div class="flex items-center gap-2 bg-white px-3 py-2 rounded-lg shadow-sm">
-                    <label class="text-sm font-bold text-gray-700">เทียบกับวันที่:</label>
-                    <input type="date" id="target-date" class="border rounded px-2 py-1 text-sm focus:outline-none focus:border-mkred-500" onchange="calculateAllTimes()">
+        <!-- ================= TAB: Personnel Records List (Protected) ================= -->
+        <section id="tab-personnel" class="hidden space-y-6">
+            <!-- Filter & Action Bar -->
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex flex-col lg:flex-row justify-between items-center gap-4">
+                <div class="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto flex-grow">
+                    <div class="relative w-full sm:w-72">
+                        <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                        <input type="text" id="search-personnel" oninput="filterPersonnel()" placeholder="ค้นหาชื่อ, ตำแหน่ง, วิชาเอก..." class="w-full pl-9 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-mkred-500 focus:outline-none text-sm">
+                    </div>
+                    <select id="filter-position" onchange="filterPersonnel()" class="w-full sm:w-48 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-mkred-500 focus:outline-none text-sm">
+                        <option value="">-- ทุกตำแหน่ง --</option>
+                    </select>
+                    <select id="filter-academic" onchange="filterPersonnel()" class="w-full sm:w-48 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-mkred-500 focus:outline-none text-sm">
+                        <option value="">-- ทุกวิทยฐานะ --</option>
+                    </select>
+                </div>
+
+                <div class="flex items-center gap-2 w-full lg:w-auto justify-end">
+                    <!-- Export Button: Changes based on role -->
+                    <button onclick="handleExportExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2 rounded-lg text-sm transition flex items-center gap-2 shadow-sm">
+                        <i class="fas fa-file-excel"></i> <span id="btn-export-text">ส่งออก Excel</span>
+                    </button>
+                    <!-- Add Personnel Button: ONLY for Admin -->
+                    <button id="btn-add-person" onclick="openAddPersonModal()" class="hidden bg-mkred-700 hover:bg-mkred-800 text-white font-medium px-4 py-2 rounded-lg text-sm transition flex items-center gap-2 shadow-sm">
+                        <i class="fas fa-user-plus"></i> <span>เพิ่มประวัติบุคลากร</span>
+                    </button>
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="time-data-container">
+            <!-- Personnel Cards Grid -->
+            <div id="personnel-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Cards injected here -->
+            </div>
+        </section>
+
+        <!-- ================= TAB: Personal Info Detailed View (Protected) ================= -->
+        <section id="tab-personal" class="hidden space-y-6">
+            <!-- Header bar for Personal info -->
+            <div class="flex flex-col sm:flex-row justify-between items-center bg-gradient-to-r from-mkyellow-400 to-amber-400 p-4 rounded-xl shadow-md gap-4">
+                <div class="flex items-center gap-3">
+                    <img id="personal-top-avatar" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" class="w-12 h-12 rounded-full object-cover border-2 border-white shadow-sm">
+                    <div>
+                        <p class="text-xs text-mkred-900 font-bold">ทะเบียนประวัติส่วนบุคคล</p>
+                        <h2 class="text-xl font-bold text-mkred-900" id="personal-fullname">-</h2>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <!-- If Admin, dropdown to select person to view/edit -->
+                    <div id="admin-person-picker" class="hidden flex items-center gap-2 bg-white px-2 py-1 rounded-lg shadow-sm">
+                        <label class="text-xs font-bold text-gray-700">เลือกบุคลากร:</label>
+                        <select id="select-target-person" onchange="switchTargetPerson(this.value)" class="text-xs border rounded p-1">
+                            <!-- Populated with all personnel -->
+                        </select>
+                    </div>
+
+                    <button onclick="printCurrentPersonProfile()" class="bg-mkred-800 hover:bg-mkred-900 text-white font-bold text-xs px-3 py-2 rounded-lg shadow-sm flex items-center gap-1.5 transition">
+                        <i class="fas fa-print"></i> <span>พิมพ์ใบประวัติ (PDF)</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Detailed Sections Grid (Sheets 1 to 6) -->
+            <div class="space-y-6" id="personal-sections-container">
+                <!-- 1. ข้อมูลพื้นฐานส่วนบุคคล (Sheet 1) -->
+                <div class="glass-card p-5">
+                    <div class="flex justify-between items-center border-b pb-3 mb-4">
+                        <h3 class="text-base font-bold text-mkred-800 flex items-center gap-2">
+                            <i class="fas fa-user text-mkred-600"></i> หมวดที่ 1: ข้อมูลส่วนบุคคลพื้นฐาน (Sheet 1)
+                        </h3>
+                        <button onclick="openEditSectionModal('1')" class="bg-amber-100 hover:bg-amber-200 text-amber-900 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition">
+                            <i class="fas fa-edit"></i> แก้ไขข้อมูลพื้นฐาน
+                        </button>
+                    </div>
+                    <div id="sec1-content" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs"></div>
+                </div>
+
+                <!-- 2. ประวัติการศึกษา (Sheet 2) -->
+                <div class="glass-card p-5">
+                    <div class="flex justify-between items-center border-b pb-3 mb-4">
+                        <h3 class="text-base font-bold text-mkred-800 flex items-center gap-2">
+                            <i class="fas fa-graduation-cap text-mkred-600"></i> หมวดที่ 2: ประวัติการศึกษา (Sheet 2)
+                        </h3>
+                        <button onclick="openEditMultiRowModal('2')" class="bg-amber-100 hover:bg-amber-200 text-amber-900 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition">
+                            <i class="fas fa-edit"></i> จัดการ/แก้ไขการศึกษา
+                        </button>
+                    </div>
+                    <div id="sec2-content" class="overflow-x-auto"></div>
+                </div>
+
+                <!-- 3. ใบอนุญาตประกอบวิชาชีพ (Sheet 3) -->
+                <div class="glass-card p-5">
+                    <div class="flex justify-between items-center border-b pb-3 mb-4">
+                        <h3 class="text-base font-bold text-mkred-800 flex items-center gap-2">
+                            <i class="fas fa-certificate text-mkred-600"></i> หมวดที่ 3: ใบอนุญาตประกอบวิชาชีพ (Sheet 3)
+                        </h3>
+                        <button onclick="openEditMultiRowModal('3')" class="bg-amber-100 hover:bg-amber-200 text-amber-900 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition">
+                            <i class="fas fa-edit"></i> จัดการ/แก้ไขใบอนุญาต
+                        </button>
+                    </div>
+                    <div id="sec3-content" class="overflow-x-auto"></div>
+                </div>
+
+                <!-- 4. ข้อมูลตำแหน่งและการทำงานปัจจุบัน (Sheet 4) -->
+                <div class="glass-card p-5">
+                    <div class="flex justify-between items-center border-b pb-3 mb-4">
+                        <h3 class="text-base font-bold text-mkred-800 flex items-center gap-2">
+                            <i class="fas fa-briefcase text-mkred-600"></i> หมวดที่ 4: ข้อมูลตำแหน่งและการทำงาน (Sheet 4)
+                        </h3>
+                        <button onclick="openEditSectionModal('4')" class="bg-amber-100 hover:bg-amber-200 text-amber-900 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition">
+                            <i class="fas fa-edit"></i> แก้ไขข้อมูลตำแหน่ง
+                        </button>
+                    </div>
+                    <div id="sec4-content" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs"></div>
+                </div>
+
+                <!-- 5. ประวัติการมีและเลื่อนวิทยฐานะ (Sheet 5) -->
+                <div class="glass-card p-5">
+                    <div class="flex justify-between items-center border-b pb-3 mb-4">
+                        <h3 class="text-base font-bold text-mkred-800 flex items-center gap-2">
+                            <i class="fas fa-star text-mkred-600"></i> หมวดที่ 5: ประวัติวิทยฐานะ (Sheet 5)
+                        </h3>
+                        <button onclick="openEditMultiRowModal('5')" class="bg-amber-100 hover:bg-amber-200 text-amber-900 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition">
+                            <i class="fas fa-edit"></i> จัดการ/แก้ไขวิทยฐานะ
+                        </button>
+                    </div>
+                    <div id="sec5-content" class="overflow-x-auto"></div>
+                </div>
+
+                <!-- 6. เครื่องราชอิสริยาภรณ์ (Sheet 6) -->
+                <div class="glass-card p-5">
+                    <div class="flex justify-between items-center border-b pb-3 mb-4">
+                        <h3 class="text-base font-bold text-mkred-800 flex items-center gap-2">
+                            <i class="fas fa-medal text-mkred-600"></i> หมวดที่ 6: เครื่องราชอิสริยาภรณ์ (Sheet 6)
+                        </h3>
+                        <button onclick="openEditMultiRowModal('6')" class="bg-amber-100 hover:bg-amber-200 text-amber-900 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition">
+                            <i class="fas fa-edit"></i> จัดการ/แก้ไขเครื่องราชฯ
+                        </button>
+                    </div>
+                    <div id="sec6-content" class="overflow-x-auto"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= TAB: Time Calculation (Protected) ================= -->
+        <section id="tab-time" class="hidden space-y-6">
+            <div class="flex flex-col md:flex-row justify-between items-center bg-gradient-to-r from-mkyellow-400 to-amber-400 p-4 rounded-xl shadow-md gap-4">
+                <h2 class="text-lg md:text-xl font-bold text-mkred-900 flex items-center gap-2">
+                    <i class="fas fa-calculator"></i> <span>ข้อมูลการนับเวลาปฏิบัติราชการ:</span> <span id="time-fullname">-</span>
+                </h2>
+                <div class="flex items-center gap-2 bg-white px-3 py-2 rounded-lg shadow-sm border border-amber-200">
+                    <label class="text-xs font-bold text-gray-700 whitespace-nowrap">เปรียบเทียบ ณ วันที่:</label>
+                    <input type="date" id="target-date" class="border rounded px-2 py-1 text-sm focus:outline-none focus:border-mkred-500 font-semibold" onchange="calculateAllTimes()">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" id="time-data-container">
                 <!-- Time cards injected here -->
+            </div>
+        </section>
+
+        <!-- ================= TAB: Settings (Protected) ================= -->
+        <section id="tab-settings" class="hidden space-y-6 max-w-4xl mx-auto">
+            <div class="bg-mkred-800 text-white p-4 rounded-xl shadow flex items-center gap-3">
+                <i class="fas fa-cog text-3xl text-mkyellow-400"></i>
+                <div>
+                    <h2 class="text-lg font-bold text-white">ระบบตั้งค่า (Settings)</h2>
+                    <p class="text-xs text-red-100">จัดการรูปโปรไฟล์, เปลี่ยนรหัสผ่าน และการตั้งค่าแจ้งเตือน Telegram</p>
+                </div>
+            </div>
+
+            <!-- Settings Card 1: Change Profile Photo -->
+            <div class="glass-card p-6">
+                <h3 class="text-base font-bold text-mkred-800 border-b pb-2 mb-4 flex items-center gap-2">
+                    <i class="fas fa-camera text-mkred-600"></i> อัปโหลดเปลี่ยนรูปโปรไฟล์ (เข้า Google Drive)
+                </h3>
+                
+                <div class="flex flex-col sm:flex-row items-center gap-6">
+                    <div class="w-28 h-36 border-2 border-gray-300 rounded-xl overflow-hidden bg-slate-100 flex items-center justify-center shadow-inner relative">
+                        <img id="settings-preview-photo" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" class="w-full h-full object-cover">
+                    </div>
+                    <div class="space-y-3 flex-grow text-center sm:text-left">
+                        <!-- If Admin: Select Target Person to change photo -->
+                        <div id="admin-photo-person-container" class="hidden">
+                            <label class="block text-xs font-bold text-gray-700 mb-1">เลือกบุคลากรที่ต้องการเปลี่ยนรูป:</label>
+                            <select id="settings-photo-target-person" onchange="handleTargetPersonPhotoChange(this.value)" class="w-full sm:w-72 px-3 py-2 border rounded-lg text-xs">
+                                <!-- Populated dynamically -->
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 mb-1">เลือกไฟล์รูปถ่ายใหม่:</label>
+                            <input type="file" id="settings-photo-file" accept="image/*" onchange="handleSettingsPhotoSelect(event)" class="text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-mkred-50 file:text-mkred-700 hover:file:bg-mkred-100">
+                            <p class="text-[11px] text-gray-400 mt-1">แนะนำไฟล์ภาพหน้าตรง สวมเครื่องแบบหรือชุดสุภาพ (JPG/PNG)</p>
+                        </div>
+
+                        <button onclick="submitUploadPhoto()" class="bg-mkred-700 hover:bg-mkred-800 text-white font-bold text-xs px-4 py-2 rounded-lg shadow transition flex items-center gap-2 mx-auto sm:mx-0">
+                            <i class="fas fa-cloud-upload-alt"></i> บันทึกรูปภาพขึ้น Google Drive
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Card 2: Change Password -->
+            <div class="glass-card p-6">
+                <h3 class="text-base font-bold text-mkred-800 border-b pb-2 mb-4 flex items-center gap-2">
+                    <i class="fas fa-key text-mkred-600"></i> เปลี่ยนรหัสผ่านเข้าสู่ระบบ
+                </h3>
+
+                <form onsubmit="event.preventDefault(); submitChangePassword();" class="max-w-md space-y-4">
+                    <!-- If Admin: Can choose to change admin's password or reset a staff's password -->
+                    <div id="admin-pwd-mode-container" class="hidden">
+                        <label class="block text-xs font-bold text-gray-700 mb-1">เลือกผู้ใช้งานที่ต้องการเปลี่ยนรหัสผ่าน:</label>
+                        <select id="settings-pwd-target" class="w-full px-3 py-2 border rounded-lg text-xs">
+                            <option value="admin">รหัสผ่านแอดมิน (adminwmk)</option>
+                            <!-- Personnel options injected here -->
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">รหัสผ่านเดิม *</label>
+                        <input type="password" id="pwd-old" required class="w-full px-3 py-2 border rounded-lg text-xs focus:ring-2 focus:ring-mkred-500 focus:outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">รหัสผ่านใหม่ (อย่างน้อย 4 ตัวอักษร) *</label>
+                        <input type="password" id="pwd-new" required minlength="4" class="w-full px-3 py-2 border rounded-lg text-xs focus:ring-2 focus:ring-mkred-500 focus:outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">ยืนยันรหัสผ่านใหม่ *</label>
+                        <input type="password" id="pwd-confirm" required minlength="4" class="w-full px-3 py-2 border rounded-lg text-xs focus:ring-2 focus:ring-mkred-500 focus:outline-none">
+                    </div>
+
+                    <button type="submit" class="bg-mkred-700 hover:bg-mkred-800 text-white font-bold text-xs px-4 py-2.5 rounded-lg shadow transition flex items-center gap-2">
+                        <i class="fas fa-save"></i> บันทึกรหัสผ่านใหม่
+                    </button>
+                </form>
+            </div>
+
+            <!-- Settings Card 3: Telegram Notification Engine (ADMIN ONLY) -->
+            <div id="admin-telegram-settings-card" class="glass-card p-6 hidden">
+                <div class="flex justify-between items-center border-b pb-2 mb-4">
+                    <h3 class="text-base font-bold text-mkred-800 flex items-center gap-2">
+                        <i class="fab fa-telegram text-blue-500 text-lg"></i> ตั้งค่าการเชื่อมต่อแจ้งเตือน Telegram (เวลา 10:00 น.)
+                    </h3>
+                    <span class="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded">เฉพาะแอดมิน</span>
+                </div>
+
+                <div class="space-y-5">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 mb-1">Telegram Bot Token *</label>
+                            <input type="text" id="tg-token" placeholder="เช่น 123456789:ABCdefGhIJKlmNoPQRstuvWXyz" class="w-full px-3 py-2 border rounded-lg text-xs font-mono">
+                            <p class="text-[10px] text-gray-400 mt-1">ได้รับจาก @BotFather บน Telegram</p>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 mb-1">Telegram Chat ID / Group ID *</label>
+                            <input type="text" id="tg-chatid" placeholder="เช่น -100123456789 หรือ ID ผู้ใช้" class="w-full px-3 py-2 border rounded-lg text-xs font-mono">
+                            <p class="text-[10px] text-gray-400 mt-1">ID กลุ่มหรือแชทที่ต้องการให้ระบบส่งแจ้งเตือนไปหา</p>
+                        </div>
+                    </div>
+
+                    <!-- Checklist Options -->
+                    <div class="bg-slate-50 p-4 rounded-xl border border-gray-200 space-y-3">
+                        <p class="text-xs font-bold text-gray-800"><i class="fas fa-clock text-amber-500 mr-1"></i> รายการเช็คลิสต์ที่ให้แจ้งเตือนอัตโนมัติทุกวันเวลา 10:00 น.:</p>
+                        
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" id="chk-birthday" checked class="w-4 h-4 text-mkred-600 rounded">
+                                <span>🎂 วันเกิดบุคลากร (สุขสันต์วันเกิด)</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" id="chk-lic-6m" checked class="w-4 h-4 text-mkred-600 rounded">
+                                <span>ℹ️ แจ้งเตือนก่อนใบอนุญาตหมดอายุ 6 เดือน</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" id="chk-lic-3m" checked class="w-4 h-4 text-mkred-600 rounded">
+                                <span>📢 แจ้งเตือนก่อนใบอนุญาตหมดอายุ 3 เดือน</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" id="chk-lic-exp" checked class="w-4 h-4 text-mkred-600 rounded">
+                                <span>⚠️ แจ้งเตือนในวันที่ใบอนุญาตหมดอายุ</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex flex-wrap items-center gap-3 pt-2">
+                        <button onclick="testTelegramConnection()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-4 py-2.5 rounded-lg shadow transition flex items-center gap-2">
+                            <i class="fab fa-telegram-plane"></i> ทดสอบส่งข้อความ Telegram
+                        </button>
+                        <button onclick="saveTelegramSettings()" class="bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs px-5 py-2.5 rounded-lg shadow transition flex items-center gap-2">
+                            <i class="fas fa-check-circle"></i> บันทึกและเปิดระบบแจ้งเตือน 10:00 น.
+                        </button>
+                    </div>
+                </div>
             </div>
         </section>
 
     </main>
 
-    <script>
-        // --- Configurations ---
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbzdwp_fLG2_JKvm9VqPhIvo3jro1BwqITzOKneSqAGDzZri9CLCsW3Lacy7B1tCzCd1OQ/exec";
-        
-        let appData = {};
-        let currentUser = null;
-        let chartInstances = {};
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-gray-400 text-center py-4 text-xs mt-auto border-t border-gray-800">
+        <p>โรงเรียนวัดแม่กะ © 2026 ระบบสารสนเทศทะเบียนประวัติข้าราชการและบุคลากรทางการศึกษา</p>
+    </footer>
 
-        // --- Initialization ---
+    <!-- ================= MODAL: Section Single Row Edit (Sheet 1 & 4) ================= -->
+    <div id="modal-edit-section" class="fixed inset-0 bg-black/70 z-50 hidden overflow-y-auto p-4 flex justify-center items-start">
+        <div class="bg-white rounded-2xl max-w-2xl w-full my-8 p-6 shadow-2xl relative">
+            <div class="flex justify-between items-center border-b pb-3 mb-4">
+                <h3 class="text-base font-bold text-mkred-800" id="section-modal-title">แก้ไขข้อมูล</h3>
+                <button onclick="closeModal('modal-edit-section')" class="text-gray-400 hover:text-gray-600 text-xl px-2">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form onsubmit="event.preventDefault(); submitSectionForm();" class="space-y-4">
+                <div id="section-form-fields" class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs max-h-[60vh] overflow-y-auto p-1">
+                    <!-- Dynamic input fields -->
+                </div>
+                <div class="border-t pt-4 flex justify-end gap-2">
+                    <button type="button" onclick="closeModal('modal-edit-section')" class="px-4 py-2 bg-gray-200 text-gray-700 font-bold rounded-lg text-xs">ยกเลิก</button>
+                    <button type="submit" class="px-5 py-2 bg-mkred-700 hover:bg-mkred-800 text-white font-bold rounded-lg text-xs shadow flex items-center gap-1.5">
+                        <i class="fas fa-save"></i> บันทึกข้อมูล
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= MODAL: Multi-Row Edit (Sheet 2, 3, 5, 6) ================= -->
+    <div id="modal-edit-multirow" class="fixed inset-0 bg-black/70 z-50 hidden overflow-y-auto p-4 flex justify-center items-start">
+        <div class="bg-white rounded-2xl max-w-4xl w-full my-8 p-6 shadow-2xl relative">
+            <div class="flex justify-between items-center border-b pb-3 mb-4">
+                <h3 class="text-base font-bold text-mkred-800" id="multirow-modal-title">จัดการข้อมูล</h3>
+                <button onclick="closeModal('modal-edit-multirow')" class="text-gray-400 hover:text-gray-600 text-xl px-2">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="flex justify-between items-center mb-3">
+                <p class="text-xs text-gray-500">สามารถเพิ่ม ลบ หรือแก้ไขข้อมูลแต่ละรายการได้</p>
+                <button type="button" onclick="addMultiRowEntry()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3 py-1.5 rounded-lg shadow flex items-center gap-1">
+                    <i class="fas fa-plus"></i> เพิ่มรายการใหม่
+                </button>
+            </div>
+
+            <form onsubmit="event.preventDefault(); submitMultiRowForm();" class="space-y-4">
+                <div id="multirow-rows-container" class="space-y-3 max-h-[60vh] overflow-y-auto p-1">
+                    <!-- Dynamic rows container -->
+                </div>
+                <div class="border-t pt-4 flex justify-end gap-2">
+                    <button type="button" onclick="closeModal('modal-edit-multirow')" class="px-4 py-2 bg-gray-200 text-gray-700 font-bold rounded-lg text-xs">ยกเลิก</button>
+                    <button type="submit" class="px-5 py-2 bg-mkred-700 hover:bg-mkred-800 text-white font-bold rounded-lg text-xs shadow flex items-center gap-1.5">
+                        <i class="fas fa-save"></i> บันทึกข้อมูลทั้งหมด
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= MODAL: Add Personnel (Admin Only) ================= -->
+    <div id="modal-add-person" class="fixed inset-0 bg-black/70 z-50 hidden overflow-y-auto p-4 flex justify-center items-start">
+        <div class="bg-white rounded-2xl max-w-2xl w-full my-8 p-6 shadow-2xl relative">
+            <div class="flex justify-between items-center border-b pb-3 mb-4">
+                <h3 class="text-base font-bold text-mkred-800 flex items-center gap-2">
+                    <i class="fas fa-user-plus"></i> เพิ่มประวัติบุคลากรใหม่เข้าสู่ระบบ
+                </h3>
+                <button onclick="closeModal('modal-add-person')" class="text-gray-400 hover:text-gray-600 text-xl px-2">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form onsubmit="event.preventDefault(); submitAddPerson();" class="space-y-4 text-xs">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-gray-700 mb-1">เลขประจำตัวประชาชน (13 หลัก) *</label>
+                        <input type="text" id="add-idcard" required maxlength="13" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-mkred-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-gray-700 mb-1">ชื่อ-สกุล (พร้อมคำนำหน้า) *</label>
+                        <input type="text" id="add-name" required placeholder="นาย/นาง/นางสาว..." class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-mkred-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-gray-700 mb-1">วันเกิด (เช่น 15/08/2530)</label>
+                        <input type="text" id="add-dob" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-mkred-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-gray-700 mb-1">ตำแหน่ง</label>
+                        <input type="text" id="add-pos" placeholder="เช่น ครู" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-mkred-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-gray-700 mb-1">วิทยฐานะ</label>
+                        <input type="text" id="add-academic" placeholder="เช่น ชำนาญการ" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-mkred-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-gray-700 mb-1">เบอร์โทรศัพท์</label>
+                        <input type="text" id="add-phone" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-mkred-500 focus:outline-none">
+                    </div>
+                </div>
+                <div class="border-t pt-4 flex justify-end gap-2">
+                    <button type="button" onclick="closeModal('modal-add-person')" class="px-4 py-2 bg-gray-200 text-gray-700 font-bold rounded-lg text-xs">ยกเลิก</button>
+                    <button type="submit" class="px-5 py-2 bg-mkred-700 hover:bg-mkred-800 text-white font-bold rounded-lg text-xs shadow">บันทึกบุคลากรใหม่</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= MODAL: Printable Profile Document (A4 PDF View) ================= -->
+    <div id="modal-print-profile" class="fixed inset-0 bg-black/70 z-50 hidden overflow-y-auto p-4 flex justify-center items-start">
+        <div class="bg-white rounded-2xl max-w-4xl w-full my-8 p-6 shadow-2xl relative">
+            <div class="flex justify-between items-center border-b pb-4 mb-4 no-print">
+                <h3 class="text-base font-bold text-mkred-800 flex items-center gap-2">
+                    <i class="fas fa-file-pdf"></i> ตัวอย่างใบทะเบียนประวัติส่วนบุคคล (พร้อมพิมพ์)
+                </h3>
+                <div class="flex items-center gap-2">
+                    <button onclick="window.print()" class="bg-mkred-700 hover:bg-mkred-800 text-white text-xs px-4 py-2 rounded-lg font-bold flex items-center gap-1.5 shadow">
+                        <i class="fas fa-print"></i> พิมพ์เอกสาร
+                    </button>
+                    <button onclick="closeModal('modal-print-profile')" class="text-gray-400 hover:text-gray-600 text-xl px-2">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Print View Content Area -->
+            <div id="printable-area" class="text-gray-900 font-sans leading-relaxed">
+                <div class="text-center border-b-2 border-mkred-800 pb-4 mb-6">
+                    <div class="flex justify-between items-start mb-2">
+                        <img src="https://img2.pic.in.th/logob0b7643db577ceee.png" class="w-20 h-20 object-contain">
+                        <div class="text-center flex-grow px-4">
+                            <h2 class="text-xl font-bold text-gray-900">ใบทะเบียนประวัติส่วนบุคคล (ก.พ. 7)</h2>
+                            <h3 class="text-base font-bold text-mkred-800">โรงเรียนวัดแม่กะ</h3>
+                            <p class="text-xs text-gray-600">สำนักงานเขตพื้นที่การศึกษาประถมศึกษา</p>
+                        </div>
+                        <div class="w-24 h-28 border-2 border-dashed border-gray-300 rounded flex items-center justify-center overflow-hidden bg-gray-50">
+                            <img id="print-photo" src="" class="w-full h-full object-cover hidden">
+                            <span id="print-photo-placeholder" class="text-xs text-gray-400 text-center p-1">รูปถ่าย<br>1 นิ้ว</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="printable-content" class="space-y-6 text-xs">
+                    <!-- Dynamic print content -->
+                </div>
+
+                <div class="mt-8 pt-4 border-t text-xs text-gray-500 flex justify-between items-end">
+                    <div>
+                        <p>ข้อมูล ณ วันที่: <span id="print-generated-date">-</span></p>
+                        <p>ระบบสารสนเทศทะเบียนประวัติ โรงเรียนวัดแม่กะ</p>
+                    </div>
+                    <div class="text-center w-48">
+                        <p class="mb-8">ลงชื่อ.......................................................</p>
+                        <p>(.......................................................)</p>
+                        <p>เจ้าหน้าที่ผู้รับรองข้อมูล</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Engine JavaScript -->
+    <script>
+        // Google Apps Script Web App URL
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbzdwp_fLG2_JKvm9VqPhIvo3jro1BwqITzOKneSqAGDzZri9CLCsW3Lacy7B1tCzCd1OQ/exec";
+
+        // Global State
+        let appData = {};
+        let currentUser = null; // { role: 'admin'|'user', username: '', name: '', idCard: '' }
+        let currentTargetPersonId = null; // The ID card of person currently viewed in Tab Personal
+        let chartInstances = {};
+        let selectedSettingsPhoto = null;
+        let selectedSettingsPhotoMeta = {};
+
+        // Active editing states
+        let activeEditSheet = null;
+        let activeMultiRowData = [];
+        let activeMultiRowHeaders = [];
+
         window.onload = async () => {
-            document.getElementById('target-date').valueAsDate = new Date();
+            const dateInput = document.getElementById('target-date');
+            if (dateInput) dateInput.valueAsDate = new Date();
+
+            // Check session storage for existing login
+            const savedSession = sessionStorage.getItem('mk_session');
+            if (savedSession) {
+                try {
+                    currentUser = JSON.parse(savedSession);
+                } catch(e) {}
+            }
+
             await fetchSheetData();
+            updateUIAfterAuth();
         };
 
-        async function fetchSheetData() {
+        // --- Fetch Sheets & Config ---
+        async function fetchSheetData(isManual = false) {
+            const loader = document.getElementById('loader');
+            const refreshIcon = document.getElementById('refresh-icon');
+            if (isManual && refreshIcon) refreshIcon.classList.add('fa-spin');
+
             try {
-                // Fetch from the provided GAS URL
                 const response = await fetch(GAS_URL);
-                if (!response.ok) throw new Error("Network response was not ok");
-                appData = await response.json();
-                
-                document.getElementById('loader').style.display = 'none';
+                if (!response.ok) throw new Error("Network error fetching API");
+                const res = await response.json();
+                appData = res.data ? res.data : res;
+
+                if (loader) loader.style.display = 'none';
+                if (refreshIcon) refreshIcon.classList.remove('fa-spin');
+
                 renderDashboard();
+                renderPersonnelGrid();
+                populateFilters();
+                populatePersonPickers();
+
+                if (currentUser) {
+                    renderPersonalInfo();
+                    calculateAllTimes();
+                }
+
+                if (isManual) {
+                    Swal.fire({ icon: 'success', title: 'อัปเดตข้อมูลล่าสุดแล้ว', timer: 1200, showConfirmButton: false });
+                }
             } catch (error) {
                 console.error("Error fetching data:", error);
-                document.getElementById('loader').innerHTML = `
-                    <div class="text-red-600 text-center">
-                        <i class="fas fa-exclamation-triangle text-4xl mb-2"></i>
-                        <p class="font-bold">เกิดข้อผิดพลาดในการดึงข้อมูล</p>
-                        <p class="text-sm">โปรดตรวจสอบ Google Apps Script API หรือการเชื่อมต่ออินเทอร์เน็ต</p>
-                    </div>
-                `;
-            }
-        }
-
-        // --- Navigation ---
-        function switchTab(tabId) {
-            ['tab1', 'tab2', 'tab3', 'login-section'].forEach(id => {
-                document.getElementById(id).classList.add('hidden');
-            });
-            ['btn-tab1', 'btn-tab2', 'btn-tab3'].forEach(id => {
-                document.getElementById(id).classList.remove('active');
-            });
-
-            document.getElementById(`btn-${tabId}`).classList.add('active');
-
-            if (tabId === 'tab1') {
-                document.getElementById('tab1').classList.remove('hidden');
-            } else {
-                if (currentUser) {
-                    document.getElementById(tabId).classList.remove('hidden');
-                    if(tabId === 'tab2') renderPersonalInfo();
-                    if(tabId === 'tab3') calculateAllTimes();
-                } else {
-                    document.getElementById('login-section').classList.remove('hidden');
-                    // Store intended tab to redirect after login
-                    document.getElementById('login-section').dataset.target = tabId;
+                if (loader) {
+                    loader.innerHTML = `
+                        <div class="text-red-600 text-center p-6 max-w-md">
+                            <i class="fas fa-exclamation-triangle text-4xl mb-3"></i>
+                            <h3 class="font-bold text-base">เกิดข้อผิดพลาดในการดึงข้อมูล</h3>
+                            <p class="text-xs text-gray-600 mt-2">โปรดตรวจสอบการเชื่อมต่ออินเทอร์เน็ตหรือ Apps Script Web App</p>
+                            <button onclick="location.reload()" class="mt-4 bg-mkred-700 text-white px-4 py-2 rounded-lg text-xs font-bold">ลองใหม่อีกครั้ง</button>
+                        </div>
+                    `;
                 }
             }
         }
 
-        // --- Data Helpers ---
+        // --- Navigation & UI State ---
+        function switchTab(tabId) {
+            const tabs = ['tab1', 'tab-login', 'tab-personnel', 'tab-personal', 'tab-time', 'tab-settings'];
+            const btnIds = ['btn-tab1', 'btn-tab-login', 'btn-tab-personnel', 'btn-tab-personal', 'btn-tab-time', 'btn-tab-settings'];
+
+            tabs.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.classList.add('hidden');
+            });
+            btnIds.forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) btn.classList.remove('active');
+            });
+
+            const activeBtn = document.getElementById(`btn-${tabId}`);
+            if (activeBtn) activeBtn.classList.add('active');
+
+            const targetSection = document.getElementById(tabId);
+            if (targetSection) targetSection.classList.remove('hidden');
+
+            if (tabId === 'tab-personal') renderPersonalInfo();
+            if (tabId === 'tab-time') calculateAllTimes();
+            if (tabId === 'tab-settings') renderSettingsTab();
+        }
+
+        function updateUIAfterAuth() {
+            const btnLogin = document.getElementById('btn-tab-login');
+            const protectedBtns = ['btn-tab-personnel', 'btn-tab-personal', 'btn-tab-time', 'btn-tab-settings'];
+            const userBadge = document.getElementById('user-badge');
+            const logoutBtn = document.getElementById('header-logout-btn');
+            const btnAddPerson = document.getElementById('btn-add-person');
+            const btnExportText = document.getElementById('btn-export-text');
+            const adminPicker = document.getElementById('admin-person-picker');
+
+            if (currentUser) {
+                // Logged In
+                if (btnLogin) btnLogin.classList.add('hidden');
+                protectedBtns.forEach(id => {
+                    const btn = document.getElementById(id);
+                    if (btn) btn.classList.remove('hidden');
+                });
+
+                if (userBadge) userBadge.classList.remove('hidden');
+                if (logoutBtn) logoutBtn.classList.remove('hidden');
+
+                document.getElementById('header-username').innerText = currentUser.name || currentUser.username;
+                const roleLabel = currentUser.role === 'admin' ? 'ผู้ดูแลระบบ' : 'บุคลากร';
+                document.getElementById('header-role').innerText = roleLabel;
+                document.getElementById('header-role').className = currentUser.role === 'admin' ? 'bg-amber-500 text-gray-900 text-[10px] font-bold px-1.5 py-0.5 rounded' : 'bg-red-700 text-white text-[10px] px-1.5 py-0.5 rounded';
+
+                // Set target person
+                if (currentUser.role === 'admin') {
+                    if (btnAddPerson) btnAddPerson.classList.remove('hidden');
+                    if (btnExportText) btnExportText.innerText = 'ส่งออก Excel ทั้งหมด';
+                    if (adminPicker) adminPicker.classList.remove('hidden');
+                    if (!currentTargetPersonId && appData['1'] && appData['1'].length > 0) {
+                        currentTargetPersonId = appData['1'][0]['เลขบัตรประชาชน'];
+                    }
+                } else {
+                    if (btnAddPerson) btnAddPerson.classList.add('hidden');
+                    if (btnExportText) btnExportText.innerText = 'ส่งออกประวัติตนเอง (Excel)';
+                    if (adminPicker) adminPicker.classList.add('hidden');
+                    currentTargetPersonId = currentUser.idCard;
+                }
+
+                // Update avatar
+                updateHeaderAvatar();
+            } else {
+                // Logged Out
+                if (btnLogin) btnLogin.classList.remove('hidden');
+                protectedBtns.forEach(id => {
+                    const btn = document.getElementById(id);
+                    if (btn) btn.classList.add('hidden');
+                });
+                if (userBadge) userBadge.classList.add('hidden');
+                if (logoutBtn) logoutBtn.classList.add('hidden');
+                if (btnAddPerson) btnAddPerson.classList.add('hidden');
+                if (adminPicker) adminPicker.classList.add('hidden');
+                currentTargetPersonId = null;
+                switchTab('tab1');
+            }
+        }
+
+        function updateHeaderAvatar() {
+            if (!currentUser) return;
+            let avatar = 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
+            if (currentUser.role === 'user') {
+                const sheet1 = appData['1'] || [];
+                const row = sheet1.find(r => String(r['เลขบัตรประชาชน']).replace(/\D/g, '') === String(currentUser.idCard).replace(/\D/g, ''));
+                if (row && (row['รูปถ่าย'] || row['URL รูปถ่าย'])) {
+                    avatar = row['รูปถ่าย'] || row['URL รูปถ่าย'];
+                }
+            } else {
+                avatar = 'https://cdn-icons-png.flaticon.com/512/2942/2942813.png'; // Admin icon
+            }
+            const img = document.getElementById('header-avatar');
+            if (img) img.src = avatar;
+        }
+
+        // --- Authentication Action ---
+        async function submitLogin() {
+            const u = document.getElementById('login-username').value.trim();
+            const p = document.getElementById('login-password').value.trim();
+
+            if (!u || !p) {
+                Swal.fire({ icon: 'warning', title: 'กรุณากรอกชื่อผู้ใช้และรหัสผ่าน' });
+                return;
+            }
+
+            Swal.fire({
+                title: 'กำลังตรวจสอบข้อมูล...',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+
+            try {
+                const res = await fetch(GAS_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'login', username: u, password: p })
+                });
+                const data = await res.json();
+
+                if (data.status === 'success') {
+                    currentUser = data.user;
+                    sessionStorage.setItem('mk_session', JSON.stringify(currentUser));
+                    updateUIAfterAuth();
+
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'เข้าสู่ระบบสำเร็จ',
+                        text: `ยินดีต้อนรับ ${currentUser.name}`,
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+
+                    // Redirect based on role
+                    if (currentUser.role === 'admin') {
+                        switchTab('tab-personnel');
+                    } else {
+                        switchTab('tab-personal');
+                    }
+                } else {
+                    Swal.fire({ icon: 'error', title: 'เข้าสู่ระบบไม่สำเร็จ', text: data.message || 'รหัสผ่านไม่ถูกต้อง' });
+                }
+            } catch (err) {
+                console.error(err);
+                Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาดในการเชื่อมต่อ', text: err.toString() });
+            }
+        }
+
+        function logout() {
+            Swal.fire({
+                title: 'ยืนยันออกจากระบบ?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#9B2C2C',
+                cancelButtonColor: '#6B7280',
+                confirmButtonText: 'ออกจากระบบ',
+                cancelButtonText: 'ยกเลิก'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    sessionStorage.removeItem('mk_session');
+                    currentUser = null;
+                    currentTargetPersonId = null;
+                    updateUIAfterAuth();
+                    Swal.fire({ icon: 'info', title: 'ออกจากระบบเรียบร้อยแล้ว', timer: 1200, showConfirmButton: false });
+                }
+            });
+        }
+
+        function togglePasswordVisibility(inputId, btn) {
+            const input = document.getElementById(inputId);
+            if (input.type === 'password') {
+                input.type = 'text';
+                btn.innerHTML = '<i class="fas fa-eye-slash"></i>';
+            } else {
+                input.type = 'password';
+                btn.innerHTML = '<i class="fas fa-eye"></i>';
+            }
+        }
+
+        // --- Helpers & Parsers ---
         function parseDate(dateStr) {
             if (!dateStr) return null;
             dateStr = String(dateStr).trim();
 
-            // 1. Try ISO format (YYYY-MM-DD) natively
             let d = new Date(dateStr);
             if (!isNaN(d.getTime()) && dateStr.includes('-') && dateStr.split('-')[0].length === 4) {
-                if(d.getFullYear() > 2400) d.setFullYear(d.getFullYear() - 543);
+                if (d.getFullYear() > 2400) d.setFullYear(d.getFullYear() - 543);
                 return d;
             }
 
-            // 2. Parse Thai Months and common formats
             const thaiMonths = {
                 "ม.ค.":0, "มกราคม":0, "ก.พ.":1, "กุมภาพันธ์":1,
                 "มี.ค.":2, "มีนาคม":2, "เม.ย.":3, "เมษายน":3,
@@ -250,41 +997,36 @@
                 }
             }
 
-            // Clean up delimiters
             tempStr = tempStr.replace(/\s+/g, '/').replace(/[\-\.]/g, '/').replace(/\/+/g, '/');
-
             let parts = tempStr.split('/');
             if (parts.length >= 3) {
                 let day = parseInt(parts[0], 10);
                 let month = parseInt(parts[1], 10) - 1;
                 let year = parseInt(parts[2], 10);
 
-                if (parts[0].length === 4) { // YYYY/MM/DD
+                if (parts[0].length === 4) {
                     year = parseInt(parts[0], 10);
                     month = parseInt(parts[1], 10) - 1;
                     day = parseInt(parts[2], 10);
                 }
 
-                if (year > 2400) year -= 543; // BE to CE
-                if (year < 100) year += 2000; // 2-digit year
+                if (year > 2400) year -= 543;
+                if (year < 100) year += 2000;
 
                 let parsedD = new Date(year, month, day);
                 if (!isNaN(parsedD.getTime())) return parsedD;
             }
 
-            // Fallback
             d = new Date(dateStr);
             if (!isNaN(d.getTime())) {
-                if(d.getFullYear() > 2400) d.setFullYear(d.getFullYear() - 543);
+                if (d.getFullYear() > 2400) d.setFullYear(d.getFullYear() - 543);
                 return d;
             }
-
             return null;
         }
 
         function calculateYMD(start, end) {
             if (!start || !end || isNaN(start) || isNaN(end)) return "-";
-            
             let isNegative = false;
             if (end < start) {
                 let temp = start; start = end; end = temp;
@@ -304,14 +1046,21 @@
                 years--;
                 months += 12;
             }
-            
-            let result = `${years} ปี ${months} เดือน ${days} วัน`;
-            return isNegative ? `เลยกำหนดแล้ว (${result})` : result;
+            let res = `${years} ปี ${months} เดือน ${days} วัน`;
+            return isNegative ? `เลยกำหนดแล้ว (${res})` : res;
+        }
+
+        function formatThaiDate(dateStr) {
+            if (!dateStr) return '-';
+            let d = parseDate(dateStr);
+            if (!d) return dateStr;
+            const thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+            return `${d.getDate()} ${thaiMonths[d.getMonth()]} ${d.getFullYear() + 543}`;
         }
 
         function calculateAvgYears(dataArray, columns) {
-            if(!dataArray || dataArray.length === 0) return "0 ปี 0 เดือน";
-            if(!Array.isArray(columns)) columns = [columns];
+            if (!dataArray || dataArray.length === 0) return "0 ปี 0 เดือน";
+            if (!Array.isArray(columns)) columns = [columns];
             
             let totalDays = 0;
             let count = 0;
@@ -319,10 +1068,10 @@
             
             dataArray.forEach(row => {
                 let d = null;
-                for(let col of columns) {
-                    if(row[col]) {
+                for (let col of columns) {
+                    if (row[col]) {
                         d = parseDate(row[col]);
-                        if(d) break;
+                        if (d) break;
                     }
                 }
                 if (d) {
@@ -344,7 +1093,7 @@
 
         function getFrequencies(dataArray, column, excludeFilter = null) {
             let counts = {};
-            if(!dataArray) return counts;
+            if (!dataArray) return counts;
             dataArray.forEach(row => {
                 if (excludeFilter && excludeFilter(row)) return;
                 let val = row[column] || 'ไม่ระบุ';
@@ -353,281 +1102,677 @@
             return counts;
         }
 
-        function formatThaiDate(dateStr) {
-            if (!dateStr) return '-';
-            let d = parseDate(dateStr);
-            if (!d) return dateStr;
-            const thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
-            return `${d.getDate()} ${thaiMonths[d.getMonth()]} ${d.getFullYear() + 543}`;
-        }
-
-        // --- Dashboard (Tab 1) ---
+        // --- Dashboard Visualizations (Tab 1) ---
         function renderDashboard() {
             const sheet1 = appData['1'] || [];
             const sheet2 = appData['2'] || [];
             const sheet4 = appData['4'] || [];
 
-            // Metrics
+            document.getElementById('metric-total').innerText = sheet1.length + ' คน';
             document.getElementById('metric-age').innerText = calculateAvgYears(sheet1, ['วันเดือนปีเกิด']);
             
             let svcAge = calculateAvgYears(sheet4, ['วันที่บรรจุ', 'วันที่เริ่มปฏิบัติราชการ']);
             if (svcAge === "0 ปี 0 เดือน") svcAge = calculateAvgYears(sheet1, ['วันเข้าบรรจุ']);
             document.getElementById('metric-service').innerText = svcAge;
-            
             document.getElementById('metric-school').innerText = calculateAvgYears(sheet4, ['วันที่เข้าหน่วยงานปัจจุบัน']);
 
-            // Chart Colors
-            const pieColors = ['#E53E3E', '#ECC94B', '#DD6B20', '#3182CE', '#38A169', '#805AD5', '#D53F8C', '#718096'];
+            const pieColors = ['#E53E3E', '#ECC94B', '#DD6B20', '#3182CE', '#38A169', '#805AD5', '#D53F8C', '#718096', '#319795'];
 
-            // 1. ตำแหน่ง (Sheet 4)
-            createChart('chartPositions', 'bar', getFrequencies(sheet4, 'ตำแหน่ง'), 'จำนวนบุคลากร', pieColors);
-            
-            // 2. เพศ (Sheet 1)
+            createChart('chartPositions', 'bar', getFrequencies(sheet4, 'ตำแหน่ง'), 'จำนวน', pieColors);
             createChart('chartGender', 'doughnut', getFrequencies(sheet1, 'เพศ'), 'เพศ', ['#3182CE', '#D53F8C', '#ECC94B']);
-            
-            // 3. ศาสนา (Sheet 1)
             createChart('chartReligion', 'pie', getFrequencies(sheet1, 'ศาสนา'), 'ศาสนา', pieColors);
-            
-            // 4. ระดับการศึกษารวม และ วุฒิการศึกษาสูงสุด (Sheet 2)
             createChart('chartEduLevel', 'doughnut', getFrequencies(sheet2, 'ระดับการศึกษา'), 'ระดับการศึกษา', pieColors);
-            
-            // วุฒิการศึกษาสูงสุด (นับทุกแถวที่มีข้อมูล โดยไม่กรองชื่อซ้ำ)
             createChart('chartEducation', 'bar', getFrequencies(sheet2, 'วุฒิการศึกษาสูงสุด', r => !r['วุฒิการศึกษาสูงสุด'] || r['วุฒิการศึกษาสูงสุด'].trim() === ''), 'จำนวน', pieColors);
 
-            // 5. กลุ่มวิชาเอก (Sheet 2) - เงื่อนไขพิเศษ นับวิชาเอกที่ซ้ำในคนเดียวกันเพียง 1 วิชาเท่านั้น
-            const excludeNames = ['นางสาวศิริยา อินทกาโมทย์', 'นายจักรพงศ์ จันทวงศ์'];
+            // Majors
             let majorCounts = {};
             let personMajors = {}; 
-            
             sheet2.forEach(row => {
                 let name = String(row['ชื่อ-สกุล']).trim();
                 let major = row['กลุ่มวิชาเอก'] || 'ไม่ระบุ';
-                if (excludeNames.includes(name)) return;
-                
                 if (!personMajors[name]) personMajors[name] = new Set();
-                personMajors[name].add(major); // Set จะตัดข้อมูลวิชาเอกที่ซ้ำกันในคนเดียวกันออกให้อัตโนมัติ
+                personMajors[name].add(major);
             });
-
-            // นับผลรวมวิชาเอกทั้งหมดที่ถูกกรองแล้ว
             for (let name in personMajors) {
-                personMajors[name].forEach(m => {
-                    majorCounts[m] = (majorCounts[m] || 0) + 1;
-                });
+                personMajors[name].forEach(m => { majorCounts[m] = (majorCounts[m] || 0) + 1; });
             }
             createChart('chartMajor', 'pie', majorCounts, 'กลุ่มวิชาเอก', pieColors);
-
-            // 6. วิทยฐานะ (Sheet 4)
             createChart('chartAcademic', 'doughnut', getFrequencies(sheet4, 'วิทยฐานะ'), 'จำนวน', pieColors);
         }
 
         function createChart(canvasId, type, dataObj, label, colors) {
-            const ctx = document.getElementById(canvasId).getContext('2d');
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
             if (chartInstances[canvasId]) chartInstances[canvasId].destroy();
-
-            const labels = Object.keys(dataObj);
-            const data = Object.values(dataObj);
 
             chartInstances[canvasId] = new Chart(ctx, {
                 type: type,
                 data: {
-                    labels: labels,
+                    labels: Object.keys(dataObj),
                     datasets: [{
                         label: label,
-                        data: data,
+                        data: Object.values(dataObj),
                         backgroundColor: colors,
                         borderWidth: 1
                     }]
                 },
                 options: {
                     responsive: true,
+                    maintainAspectRatio: false,
                     plugins: { 
-                        legend: { position: type==='bar' ? 'none' : 'bottom' },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    let val = context.raw;
-                                    let datasetData = context.chart.data.datasets[context.datasetIndex].data;
-                                    let total = datasetData.reduce((acc, curr) => acc + curr, 0);
-                                    let percentage = total > 0 ? ((val / total) * 100).toFixed(1).replace(/\.0$/, '') : 0;
-                                    return ` จำนวน: ${val} (ร้อยละ ${percentage})`;
-                                }
-                            }
-                        }
+                        legend: { position: type === 'bar' ? 'none' : 'bottom' }
                     },
                     scales: type === 'bar' ? { y: { beginAtZero: true, ticks: { stepSize: 1 } } } : {}
                 }
             });
         }
 
-        // --- Authentication ---
-        function login() {
-            const idCard = document.getElementById('id-input').value.trim();
+        // --- Tab Personnel List & Cards ---
+        function renderPersonnelGrid() {
+            const grid = document.getElementById('personnel-grid');
+            if (!grid) return;
+
             const sheet1 = appData['1'] || [];
-            
-            const userRow = sheet1.find(row => String(row['เลขบัตรประชาชน']).replace(/\D/g, '') === idCard.replace(/\D/g, ''));
-            
-            if (userRow) {
-                document.getElementById('login-error').classList.add('hidden');
-                document.getElementById('id-input').value = '';
-                
-                const fullName = String(userRow['ชื่อ-สกุล']).trim();
-                const cleanName = fullName.replace(/\s+/g, ' ');
+            const sheet4 = appData['4'] || [];
 
-                const findByName = (sheet) => (sheet || []).find(r => String(r['ชื่อ-สกุล']).replace(/\s+/g, ' ').trim() === cleanName) || {};
-                const filterByName = (sheet) => (sheet || []).filter(r => String(r['ชื่อ-สกุล']).replace(/\s+/g, ' ').trim() === cleanName) || [];
-                
-                // Aggregate user data from all sheets
-                currentUser = {
-                    name: fullName,
-                    s1: userRow,
-                    s2: filterByName(appData['2']), // เก็บเป็น Array สำหรับกรณีมีหลายวุฒิ
-                    s3: filterByName(appData['3']), // เก็บเป็น Array สำหรับกรณีมีหลายใบอนุญาต
-                    s4: findByName(appData['4']),
-                    s5: filterByName(appData['5']),
-                    s6: filterByName(appData['6'])
-                };
-
-                document.getElementById('p-name').innerText = fullName;
-                document.getElementById('t-name').innerText = fullName;
-
-                const targetTab = document.getElementById('login-section').dataset.target || 'tab2';
-                switchTab(targetTab);
-            } else {
-                document.getElementById('login-error').classList.remove('hidden');
+            if (sheet1.length === 0) {
+                grid.innerHTML = `<div class="col-span-full text-center py-12 text-gray-400">ไม่พบข้อมูลบุคลากร</div>`;
+                return;
             }
-        }
 
-        function logout() {
-            currentUser = null;
-            switchTab('tab1');
-        }
+            const findS4 = (name) => sheet4.find(r => String(r['ชื่อ-สกุล']).trim() === String(name).trim()) || {};
 
-        // --- Personal Info (Tab 2) ---
-        function renderPersonalInfo() {
-            const container = document.getElementById('personal-data-container');
             let html = '';
+            sheet1.forEach(person => {
+                const fullName = person['ชื่อ-สกุล'] || 'ไม่ระบุชื่อ';
+                const idCard = person['เลขบัตรประชาชน'] || '';
+                const photoUrl = person['รูปถ่าย'] || person['URL รูปถ่าย'] || 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
+                const s4 = findS4(fullName);
+                const pos = s4['ตำแหน่ง'] || 'ไม่ระบุ';
+                const academic = s4['วิทยฐานะ'] || '-';
 
-            // Card 1: ข้อมูลพื้นฐาน
-            html += `
-                <div class="glass-card p-5">
-                    <h3 class="text-lg font-bold text-mkred-800 border-b-2 border-mkyellow-400 pb-2 mb-3"><i class="fas fa-address-card mr-2"></i>ข้อมูลพื้นฐาน</h3>
-                    <div class="space-y-2 text-sm">
-                        <p><span class="font-bold text-gray-600">ชื่อ-สกุล:</span> ${currentUser.s1['ชื่อ-สกุล']}</p>
-                        <p><span class="font-bold text-gray-600">วันเกิด:</span> ${formatThaiDate(currentUser.s1['วันเดือนปีเกิด'])}</p>
-                        <p><span class="font-bold text-gray-600">เพศ/ศาสนา:</span> ${currentUser.s1['เพศ'] || '-'} / ${currentUser.s1['ศาสนา'] || '-'}</p>
-                        <p><span class="font-bold text-gray-600">หมู่เลือด:</span> ${currentUser.s1['หมู่เลือด'] || '-'}</p>
-                        <p><span class="font-bold text-gray-600">เบอร์โทรศัพท์:</span> ${currentUser.s1['เบอร์โทรศัพท์'] || '-'}</p>
-                        <p><span class="font-bold text-gray-600">E-mail:</span> ${currentUser.s1['E-mail'] || '-'}</p>
-                    </div>
-                </div>
-            `;
+                // Check permission
+                const isSelf = currentUser && currentUser.role === 'user' && (String(currentUser.idCard).replace(/\D/g, '') === String(idCard).replace(/\D/g, ''));
+                const isAdmin = currentUser && currentUser.role === 'admin';
 
-            // Card 2: การศึกษา (Sheet 2) - รองรับหลายวุฒิการศึกษา
-            let eduHtml = '';
-            if (currentUser.s2.length > 0) {
-                currentUser.s2.forEach((edu, index) => {
-                    eduHtml += `
-                        <div class="${index > 0 ? 'border-t border-gray-200 mt-3 pt-3' : ''} space-y-1">
-                            <p><span class="font-bold text-gray-600">ระดับการศึกษา:</span> ${edu['ระดับการศึกษา'] || '-'}</p>
-                            <p><span class="font-bold text-gray-600">วุฒิการศึกษา:</span> ${edu['วุฒิการศึกษา'] || '-'}</p>
-                            <p><span class="font-bold text-gray-600">สาขาวิชาเอก:</span> ${edu['สาขาวิชาเอก'] || '-'}</p>
-                        </div>
+                let actionButtons = '';
+                if (isAdmin || isSelf) {
+                    actionButtons = `
+                        <button onclick="viewPrintableProfile('${idCard}')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1">
+                            <i class="fas fa-print"></i> ใบประวัติ
+                        </button>
+                        <button onclick="selectAndGoToPersonal('${idCard}')" class="bg-amber-100 hover:bg-amber-200 text-amber-900 px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1">
+                            <i class="fas fa-eye"></i> ดูข้อมูล & แก้ไข
+                        </button>
                     `;
-                });
-            } else {
-                eduHtml = '<p class="text-gray-500">- ไม่มีข้อมูล -</p>';
+                } else {
+                    actionButtons = `
+                        <span class="text-gray-400 text-[11px] italic"><i class="fas fa-lock mr-1"></i>ดูข้อมูลลึกเฉพาะตนเอง</span>
+                    `;
+                }
+
+                html += `
+                    <div class="glass-card p-5 flex flex-col justify-between hover:shadow-xl transition-all border-t-4 border-mkred-700 relative">
+                        <div class="flex items-start gap-4">
+                            <img src="${photoUrl}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/149/149071.png'" class="w-20 h-24 object-cover rounded-xl border-2 border-amber-300 shadow-sm flex-shrink-0">
+                            <div class="space-y-1 min-w-0">
+                                <span class="bg-mkred-100 text-mkred-800 text-[11px] font-bold px-2 py-0.5 rounded-md inline-block">${pos}</span>
+                                <h3 class="text-base font-bold text-gray-900 truncate">${fullName}</h3>
+                                <p class="text-xs text-gray-500"><i class="fas fa-star text-amber-500 mr-1"></i>วิทยฐานะ: ${academic}</p>
+                                <p class="text-xs text-gray-500 truncate"><i class="fas fa-phone mr-1"></i>${person['เบอร์โทรศัพท์'] || '-'}</p>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs gap-2">
+                            ${actionButtons}
+                        </div>
+                    </div>
+                `;
+            });
+
+            grid.innerHTML = html;
+        }
+
+        function populateFilters() {
+            const posSelect = document.getElementById('filter-position');
+            const academicSelect = document.getElementById('filter-academic');
+            if (!posSelect || !academicSelect) return;
+
+            const sheet4 = appData['4'] || [];
+            const positions = new Set();
+            const academics = new Set();
+
+            sheet4.forEach(r => {
+                if (r['ตำแหน่ง']) positions.add(r['ตำแหน่ง']);
+                if (r['วิทยฐานะ']) academics.add(r['วิทยฐานะ']);
+            });
+
+            posSelect.innerHTML = '<option value="">-- ทุกตำแหน่ง --</option>' + [...positions].map(p => `<option value="${p}">${p}</option>`).join('');
+            academicSelect.innerHTML = '<option value="">-- ทุกวิทยฐานะ --</option>' + [...academics].map(a => `<option value="${a}">${a}</option>`).join('');
+        }
+
+        function filterPersonnel() {
+            const search = document.getElementById('search-personnel').value.toLowerCase();
+            const posFilter = document.getElementById('filter-position').value;
+            const academicFilter = document.getElementById('filter-academic').value;
+
+            const sheet1 = appData['1'] || [];
+            const sheet4 = appData['4'] || [];
+            const findS4 = (name) => sheet4.find(r => String(r['ชื่อ-สกุล']).trim() === String(name).trim()) || {};
+
+            const filtered = sheet1.filter(person => {
+                const name = String(person['ชื่อ-สกุล'] || '').toLowerCase();
+                const idCard = String(person['เลขบัตรประชาชน'] || '');
+                const s4 = findS4(person['ชื่อ-สกุล']);
+                const pos = s4['ตำแหน่ง'] || '';
+                const academic = s4['วิทยฐานะ'] || '';
+
+                const matchesSearch = name.includes(search) || idCard.includes(search) || pos.toLowerCase().includes(search);
+                const matchesPos = !posFilter || pos === posFilter;
+                const matchesAcademic = !academicFilter || academic === academicFilter;
+                return matchesSearch && matchesPos && matchesAcademic;
+            });
+
+            const grid = document.getElementById('personnel-grid');
+            if (filtered.length === 0) {
+                grid.innerHTML = `<div class="col-span-full text-center py-12 text-gray-400">ไม่พบข้อมูลตามเงื่อนไขที่ค้นหา</div>`;
+                return;
             }
 
-            html += `
-                <div class="glass-card p-5">
-                    <h3 class="text-lg font-bold text-mkred-800 border-b-2 border-mkyellow-400 pb-2 mb-3"><i class="fas fa-graduation-cap mr-2"></i>การศึกษา</h3>
-                    <div class="text-sm">
-                        ${eduHtml}
-                    </div>
-                </div>
-            `;
+            let html = '';
+            filtered.forEach(person => {
+                const fullName = person['ชื่อ-สกุล'] || 'ไม่ระบุชื่อ';
+                const idCard = person['เลขบัตรประชาชน'] || '';
+                const photoUrl = person['รูปถ่าย'] || person['URL รูปถ่าย'] || 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
+                const s4 = findS4(fullName);
+                const pos = s4['ตำแหน่ง'] || 'ไม่ระบุ';
+                const academic = s4['วิทยฐานะ'] || '-';
 
-            // Card 3: การทำงานและตำแหน่ง (Sheet 4)
-            html += `
-                <div class="glass-card p-5">
-                    <h3 class="text-lg font-bold text-mkred-800 border-b-2 border-mkyellow-400 pb-2 mb-3"><i class="fas fa-briefcase mr-2"></i>การทำงานและตำแหน่ง</h3>
-                    <div class="space-y-2 text-sm">
-                        <p><span class="font-bold text-gray-600">ตำแหน่ง:</span> ${currentUser.s4['ตำแหน่ง'] || '-'}</p>
-                        <p><span class="font-bold text-gray-600">วิทยฐานะ:</span> ${currentUser.s4['วิทยฐานะ'] || '-'}</p>
-                        <p><span class="font-bold text-gray-600">ประเภทบุคลากร:</span> ${currentUser.s4['ประเภทบุคลากร'] || '-'}</p>
-                        <p><span class="font-bold text-gray-600">เลขที่ตำแหน่ง:</span> ${currentUser.s4['เลขที่ตำแหน่ง'] || '-'}</p>
-                        <p><span class="font-bold text-gray-600">เงินเดือน:</span> ${currentUser.s4['เงินเดือน'] ? Number(currentUser.s4['เงินเดือน']).toLocaleString() + ' บาท' : '-'}</p>
-                    </div>
-                </div>
-            `;
+                const isSelf = currentUser && currentUser.role === 'user' && (String(currentUser.idCard).replace(/\D/g, '') === String(idCard).replace(/\D/g, ''));
+                const isAdmin = currentUser && currentUser.role === 'admin';
 
-            // Card 4: ใบอนุญาตประกอบวิชาชีพ (Sheet 3) - รองรับหลายใบอนุญาต
-            let licHtml = '';
-            if (currentUser.s3.length > 0) {
-                currentUser.s3.forEach((lic, index) => {
-                    licHtml += `
-                        <div class="${index > 0 ? 'border-t border-gray-200 mt-3 pt-3' : ''} space-y-1">
-                            <p><span class="font-bold text-gray-600">ประเภท:</span> ${lic['ประเภทใบอนุญาต'] || '-'}</p>
-                            <p><span class="font-bold text-gray-600">เลขที่:</span> ${lic['เลขที่ใบอนุญาต'] || '-'}</p>
-                        </div>
+                let actionButtons = '';
+                if (isAdmin || isSelf) {
+                    actionButtons = `
+                        <button onclick="viewPrintableProfile('${idCard}')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1">
+                            <i class="fas fa-print"></i> ใบประวัติ
+                        </button>
+                        <button onclick="selectAndGoToPersonal('${idCard}')" class="bg-amber-100 hover:bg-amber-200 text-amber-900 px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1">
+                            <i class="fas fa-eye"></i> ดูข้อมูล & แก้ไข
+                        </button>
                     `;
+                } else {
+                    actionButtons = `
+                        <span class="text-gray-400 text-[11px] italic"><i class="fas fa-lock mr-1"></i>ดูข้อมูลลึกเฉพาะตนเอง</span>
+                    `;
+                }
+
+                html += `
+                    <div class="glass-card p-5 flex flex-col justify-between hover:shadow-xl transition-all border-t-4 border-mkred-700 relative">
+                        <div class="flex items-start gap-4">
+                            <img src="${photoUrl}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/149/149071.png'" class="w-20 h-24 object-cover rounded-xl border-2 border-amber-300 shadow-sm flex-shrink-0">
+                            <div class="space-y-1 min-w-0">
+                                <span class="bg-mkred-100 text-mkred-800 text-[11px] font-bold px-2 py-0.5 rounded-md inline-block">${pos}</span>
+                                <h3 class="text-base font-bold text-gray-900 truncate">${fullName}</h3>
+                                <p class="text-xs text-gray-500"><i class="fas fa-star text-amber-500 mr-1"></i>วิทยฐานะ: ${academic}</p>
+                                <p class="text-xs text-gray-500 truncate"><i class="fas fa-phone mr-1"></i>${person['เบอร์โทรศัพท์'] || '-'}</p>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs gap-2">
+                            ${actionButtons}
+                        </div>
+                    </div>
+                `;
+            });
+            grid.innerHTML = html;
+        }
+
+        function selectAndGoToPersonal(idCard) {
+            currentTargetPersonId = idCard;
+            const selectEl = document.getElementById('select-target-person');
+            if (selectEl) selectEl.value = idCard;
+            switchTab('tab-personal');
+        }
+
+        function populatePersonPickers() {
+            const sheet1 = appData['1'] || [];
+            const selectTarget = document.getElementById('select-target-person');
+            const selectPhoto = document.getElementById('settings-photo-target-person');
+            const selectPwd = document.getElementById('settings-pwd-target');
+
+            let optionsHtml = sheet1.map(p => `<option value="${p['เลขบัตรประชาชน']}">${p['ชื่อ-สกุล']} (${p['เลขบัตรประชาชน']})</option>`).join('');
+
+            if (selectTarget) selectTarget.innerHTML = optionsHtml;
+            if (selectPhoto) selectPhoto.innerHTML = optionsHtml;
+            if (selectPwd) selectPwd.innerHTML = '<option value="admin">รหัสผ่านแอดมิน (adminwmk)</option>' + optionsHtml;
+        }
+
+        function switchTargetPerson(newId) {
+            currentTargetPersonId = newId;
+            renderPersonalInfo();
+            calculateAllTimes();
+        }
+
+        // --- Export to Excel ---
+        function handleExportExcel() {
+            if (!currentUser) return;
+            const wb = XLSX.utils.book_new();
+
+            if (currentUser.role === 'admin') {
+                // Export everything
+                ['1', '2', '3', '4', '5', '6'].forEach(name => {
+                    const sheetData = appData[name] || [];
+                    if (sheetData.length > 0) {
+                        const ws = XLSX.utils.json_to_sheet(sheetData);
+                        XLSX.utils.book_append_sheet(wb, ws, `ข้อมูล_ชีท_${name}`);
+                    }
                 });
+                XLSX.writeFile(wb, `ทะเบียนประวัติบุคลากรทั้งหมด_รร.วัดแม่กะ_${new Date().toISOString().slice(0,10)}.xlsx`);
+                Swal.fire({ icon: 'success', title: 'ส่งออกข้อมูลบุคลากรทั้งหมดเรียบร้อยแล้ว', timer: 1500, showConfirmButton: false });
             } else {
-                licHtml = '<p class="text-gray-500">- ไม่มีข้อมูล -</p>';
+                // Export only current user
+                const sheet1 = appData['1'] || [];
+                const userRow = sheet1.find(r => String(r['เลขบัตรประชาชน']).replace(/\D/g, '') === String(currentUser.idCard).replace(/\D/g, ''));
+                if (!userRow) return;
+                const myName = String(userRow['ชื่อ-สกุล']).replace(/\s+/g, ' ').trim();
+
+                const filterMyData = (data) => (data || []).filter(r => String(r['ชื่อ-สกุล']).replace(/\s+/g, ' ').trim() === myName);
+
+                XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([userRow]), 'ข้อมูลพื้นฐาน');
+                XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(filterMyData(appData['2'])), 'ประวัติการศึกษา');
+                XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(filterMyData(appData['3'])), 'ใบอนุญาต');
+                XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(filterMyData(appData['4'])), 'ตำแหน่งและการทำงาน');
+                XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(filterMyData(appData['5'])), 'วิทยฐานะ');
+                XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(filterMyData(appData['6'])), 'เครื่องราชฯ');
+
+                XLSX.writeFile(wb, `ทะเบียนประวัติ_${myName}_${new Date().toISOString().slice(0,10)}.xlsx`);
+                Swal.fire({ icon: 'success', title: 'ส่งออกประวัติตนเองเรียบร้อยแล้ว', timer: 1500, showConfirmButton: false });
+            }
+        }
+
+        // --- Personal Info Detailed Render (Tab Personal - Sheets 1 to 6) ---
+        function getTargetPersonData() {
+            const sheet1 = appData['1'] || [];
+            let targetId = currentTargetPersonId;
+            if (!targetId && currentUser && currentUser.role === 'user') targetId = currentUser.idCard;
+
+            const userRow = sheet1.find(r => String(r['เลขบัตรประชาชน']).replace(/\D/g, '') === String(targetId).replace(/\D/g, '')) || sheet1[0] || {};
+            const fullName = String(userRow['ชื่อ-สกุล'] || '').trim();
+            const cleanName = fullName.replace(/\s+/g, ' ');
+
+            const findByName = (sheet) => (sheet || []).find(r => String(r['ชื่อ-สกุล']).replace(/\s+/g, ' ').trim() === cleanName) || {};
+            const filterByName = (sheet) => (sheet || []).filter(r => String(r['ชื่อ-สกุล']).replace(/\s+/g, ' ').trim() === cleanName) || [];
+
+            return {
+                idCard: userRow['เลขบัตรประชาชน'] || '',
+                fullName: fullName,
+                s1: userRow,
+                s2: filterByName(appData['2']),
+                s3: filterByName(appData['3']),
+                s4: findByName(appData['4']),
+                s5: filterByName(appData['5']),
+                s6: filterByName(appData['6'])
+            };
+        }
+
+        function renderPersonalInfo() {
+            const data = getTargetPersonData();
+            if (!data.fullName) return;
+
+            document.getElementById('personal-fullname').innerText = data.fullName;
+            document.getElementById('time-fullname').innerText = data.fullName;
+
+            const avatar = data.s1['รูปถ่าย'] || data.s1['URL รูปถ่าย'] || 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
+            document.getElementById('personal-top-avatar').src = avatar;
+
+            // 1. Render Sheet 1 (ข้อมูลพื้นฐาน)
+            const sec1 = document.getElementById('sec1-content');
+            sec1.innerHTML = `
+                <div><span class="font-bold text-gray-500">ชื่อ-สกุล:</span> ${data.s1['ชื่อ-สกุล'] || '-'}</div>
+                <div><span class="font-bold text-gray-500">เลขบัตรประชาชน:</span> ${data.s1['เลขบัตรประชาชน'] || '-'}</div>
+                <div><span class="font-bold text-gray-500">วันเกิด:</span> ${formatThaiDate(data.s1['วันเดือนปีเกิด'])}</div>
+                <div><span class="font-bold text-gray-500">เพศ:</span> ${data.s1['เพศ'] || '-'}</div>
+                <div><span class="font-bold text-gray-500">ศาสนา:</span> ${data.s1['ศาสนา'] || '-'}</div>
+                <div><span class="font-bold text-gray-500">หมู่เลือด:</span> ${data.s1['หมู่เลือด'] || '-'}</div>
+                <div><span class="font-bold text-gray-500">เบอร์โทรศัพท์:</span> ${data.s1['เบอร์โทรศัพท์'] || '-'}</div>
+                <div><span class="font-bold text-gray-500">E-mail:</span> ${data.s1['E-mail'] || '-'}</div>
+                <div><span class="font-bold text-gray-500">วันเข้าบรรจุ:</span> ${formatThaiDate(data.s1['วันเข้าบรรจุ'])}</div>
+                <div><span class="font-bold text-gray-500">วันเกษียณอายุ:</span> ${formatThaiDate(data.s1['วันเกษียณอายุ'])}</div>
+            `;
+
+            // 2. Render Sheet 2 (ประวัติการศึกษา)
+            const sec2 = document.getElementById('sec2-content');
+            if (data.s2.length > 0) {
+                sec2.innerHTML = `
+                    <table class="w-full text-xs text-left border border-gray-200 rounded-lg overflow-hidden">
+                        <thead class="bg-slate-100 text-gray-700 font-bold">
+                            <tr>
+                                <th class="p-2 border-b">ระดับการศึกษา</th>
+                                <th class="p-2 border-b">วุฒิการศึกษา</th>
+                                <th class="p-2 border-b">สาขาวิชาเอก</th>
+                                <th class="p-2 border-b">วุฒิการศึกษาสูงสุด</th>
+                                <th class="p-2 border-b">กลุ่มวิชาเอก</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${data.s2.map(e => `
+                                <tr class="hover:bg-slate-50 border-b">
+                                    <td class="p-2">${e['ระดับการศึกษา'] || '-'}</td>
+                                    <td class="p-2">${e['วุฒิการศึกษา'] || '-'}</td>
+                                    <td class="p-2">${e['สาขาวิชาเอก'] || '-'}</td>
+                                    <td class="p-2">${e['วุฒิการศึกษาสูงสุด'] || '-'}</td>
+                                    <td class="p-2">${e['กลุ่มวิชาเอก'] || '-'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            } else {
+                sec2.innerHTML = '<p class="text-xs text-gray-400 italic">ไม่มีข้อมูลการศึกษา</p>';
             }
 
-            html += `
-                <div class="glass-card p-5">
-                    <h3 class="text-lg font-bold text-mkred-800 border-b-2 border-mkyellow-400 pb-2 mb-3"><i class="fas fa-certificate mr-2"></i>ใบอนุญาตประกอบวิชาชีพ</h3>
-                    <div class="text-sm">
-                        ${licHtml}
+            // 3. Render Sheet 3 (ใบอนุญาต)
+            const sec3 = document.getElementById('sec3-content');
+            if (data.s3.length > 0) {
+                sec3.innerHTML = `
+                    <table class="w-full text-xs text-left border border-gray-200 rounded-lg overflow-hidden">
+                        <thead class="bg-slate-100 text-gray-700 font-bold">
+                            <tr>
+                                <th class="p-2 border-b">ประเภทใบอนุญาต</th>
+                                <th class="p-2 border-b">เลขที่ใบอนุญาต</th>
+                                <th class="p-2 border-b">วันหมดอายุ</th>
+                                <th class="p-2 border-b">สถานะ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${data.s3.map(lic => {
+                                const exp = parseDate(lic['วันเดือนปีที่หมดอายุ']);
+                                let badge = '<span class="bg-green-100 text-green-800 px-2 py-0.5 rounded text-[10px]">ปกติ</span>';
+                                if (exp) {
+                                    const diffDays = Math.ceil((exp - new Date()) / (1000 * 60 * 60 * 24));
+                                    if (diffDays <= 0) badge = '<span class="bg-red-100 text-red-800 px-2 py-0.5 rounded text-[10px] font-bold">หมดอายุแล้ว</span>';
+                                    else if (diffDays <= 90) badge = '<span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded text-[10px] font-bold">ใกล้หมดอายุ (ภายใน 3 เดือน)</span>';
+                                    else if (diffDays <= 180) badge = '<span class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-[10px]">ใกล้หมดอายุ (ภายใน 6 เดือน)</span>';
+                                }
+                                return `
+                                    <tr class="hover:bg-slate-50 border-b">
+                                        <td class="p-2 font-semibold">${lic['ประเภทใบอนุญาต'] || '-'}</td>
+                                        <td class="p-2">${lic['เลขที่ใบอนุญาต'] || '-'}</td>
+                                        <td class="p-2">${formatThaiDate(lic['วันเดือนปีที่หมดอายุ'])}</td>
+                                        <td class="p-2">${badge}</td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                `;
+            } else {
+                sec3.innerHTML = '<p class="text-xs text-gray-400 italic">ไม่มีข้อมูลใบอนุญาตประกอบวิชาชีพ</p>';
+            }
+
+            // 4. Render Sheet 4 (การทำงานและตำแหน่ง)
+            const sec4 = document.getElementById('sec4-content');
+            sec4.innerHTML = `
+                <div><span class="font-bold text-gray-500">ตำแหน่ง:</span> ${data.s4['ตำแหน่ง'] || '-'}</div>
+                <div><span class="font-bold text-gray-500">วิทยฐานะ:</span> ${data.s4['วิทยฐานะ'] || '-'}</div>
+                <div><span class="font-bold text-gray-500">ประเภทบุคลากร:</span> ${data.s4['ประเภทบุคลากร'] || '-'}</div>
+                <div><span class="font-bold text-gray-500">เลขที่ตำแหน่ง:</span> ${data.s4['เลขที่ตำแหน่ง'] || '-'}</div>
+                <div><span class="font-bold text-gray-500">เงินเดือน:</span> ${data.s4['เงินเดือน'] ? Number(data.s4['เงินเดือน']).toLocaleString() + ' บาท' : '-'}</div>
+                <div><span class="font-bold text-gray-500">วันที่บรรจุ:</span> ${formatThaiDate(data.s4['วันที่บรรจุ'])}</div>
+                <div><span class="font-bold text-gray-500">วันที่เริ่มปฏิบัติราชการ:</span> ${formatThaiDate(data.s4['วันที่เริ่มปฏิบัติราชการ'])}</div>
+                <div><span class="font-bold text-gray-500">วันที่เข้าหน่วยงานปัจจุบัน:</span> ${formatThaiDate(data.s4['วันที่เข้าหน่วยงานปัจจุบัน'])}</div>
+                <div><span class="font-bold text-gray-500">วันที่ดำรงตำแหน่งวิทยฐานะ:</span> ${formatThaiDate(data.s4['วันที่ดำรงตำแหน่งวิทยฐานะ'])}</div>
+            `;
+
+            // 5. Render Sheet 5 (วิทยฐานะ)
+            const sec5 = document.getElementById('sec5-content');
+            if (data.s5.length > 0) {
+                const sampleHeaders = Object.keys(data.s5[0]).filter(k => k !== 'ชื่อ-สกุล');
+                sec5.innerHTML = `
+                    <table class="w-full text-xs text-left border border-gray-200 rounded-lg overflow-hidden">
+                        <thead class="bg-slate-100 text-gray-700 font-bold">
+                            <tr>
+                                ${sampleHeaders.map(h => `<th class="p-2 border-b">${h}</th>`).join('')}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${data.s5.map(row => `
+                                <tr class="hover:bg-slate-50 border-b">
+                                    ${sampleHeaders.map(h => `<td class="p-2">${row[h] || '-'}</td>`).join('')}
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            } else {
+                sec5.innerHTML = '<p class="text-xs text-gray-400 italic">ไม่มีข้อมูลประวัติวิทยฐานะ</p>';
+            }
+
+            // 6. Render Sheet 6 (เครื่องราชฯ)
+            const sec6 = document.getElementById('sec6-content');
+            if (data.s6.length > 0) {
+                sec6.innerHTML = `
+                    <table class="w-full text-xs text-left border border-gray-200 rounded-lg overflow-hidden">
+                        <thead class="bg-slate-100 text-gray-700 font-bold">
+                            <tr>
+                                <th class="p-2 border-b">ชั้นตรา</th>
+                                <th class="p-2 border-b">ประจำปี พ.ศ.</th>
+                                <th class="p-2 border-b">วันที่ประกาศในราชกิจจาฯ</th>
+                                <th class="p-2 border-b">เล่ม/ตอน/หน้า</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${data.s6.map(d => `
+                                <tr class="hover:bg-slate-50 border-b">
+                                    <td class="p-2 font-semibold text-mkred-800">${d['ชั้นตรา'] || '-'}</td>
+                                    <td class="p-2">${d['ประจำปี'] || '-'}</td>
+                                    <td class="p-2">${formatThaiDate(d['วันที่ประกาศในราชกิจจา'])}</td>
+                                    <td class="p-2">${d['เล่ม/ตอน/หน้า'] || d['เล่ม'] || '-'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            } else {
+                sec6.innerHTML = '<p class="text-xs text-gray-400 italic">ไม่มีข้อมูลเครื่องราชอิสริยาภรณ์</p>';
+            }
+        }
+
+        // --- Editing Single Section Modals (Sheet 1 & 4) ---
+        function openEditSectionModal(sheetName) {
+            activeEditSheet = sheetName;
+            const data = getTargetPersonData();
+            const modal = document.getElementById('modal-edit-section');
+            const title = document.getElementById('section-modal-title');
+            const fieldsContainer = document.getElementById('section-form-fields');
+
+            let sourceObj = sheetName === '1' ? data.s1 : data.s4;
+            title.innerText = sheetName === '1' ? 'แก้ไขข้อมูลส่วนบุคคลพื้นฐาน (Sheet 1)' : 'แก้ไขข้อมูลตำแหน่งและการทำงาน (Sheet 4)';
+
+            // Fetch headers from sheet or sourceObj
+            let headers = [];
+            if (appData[sheetName] && appData[sheetName].length > 0) {
+                headers = Object.keys(appData[sheetName][0]).filter(k => k !== 'password' && k !== 'รหัสผ่าน');
+            } else {
+                headers = Object.keys(sourceObj);
+            }
+
+            let fieldsHtml = '';
+            headers.forEach(h => {
+                const val = sourceObj[h] || '';
+                const readonlyAttr = (h === 'เลขบัตรประชาชน' && sheetName === '1') || (h === 'ชื่อ-สกุล') ? 'readonly class="w-full px-3 py-2 border bg-gray-100 rounded-lg text-xs"' : 'class="w-full px-3 py-2 border rounded-lg text-xs"';
+                fieldsHtml += `
+                    <div>
+                        <label class="block font-bold text-gray-700 mb-1">${h}</label>
+                        <input type="text" name="${h}" value="${val}" ${readonlyAttr}>
                     </div>
-                </div>
-            `;
-            
-             // Card 5: เครื่องราชอิสริยาภรณ์ (Sheet 6)
-             let decHtml = '';
-             if(currentUser.s6.length > 0) {
-                 currentUser.s6.forEach(d => {
-                     decHtml += `<li class="border-b border-gray-100 py-1">- ${d['ชั้นตรา']} (ปี ${d['ประจำปี']})</li>`;
-                 });
-             } else { decHtml = '<li>- ไม่มีข้อมูล -</li>'; }
+                `;
+            });
 
-             html += `
-                <div class="glass-card p-5 md:col-span-2">
-                    <h3 class="text-lg font-bold text-mkred-800 border-b-2 border-mkyellow-400 pb-2 mb-3"><i class="fas fa-medal mr-2"></i>เครื่องราชอิสริยาภรณ์</h3>
-                    <ul class="text-sm text-gray-700 space-y-1">${decHtml}</ul>
-                </div>
-            `;
+            fieldsContainer.innerHTML = fieldsHtml;
+            modal.classList.remove('hidden');
+        }
 
+        async function submitSectionForm() {
+            const data = getTargetPersonData();
+            const container = document.getElementById('section-form-fields');
+            const inputs = container.querySelectorAll('input');
+            let payloadData = {};
+            inputs.forEach(inp => {
+                payloadData[inp.name] = inp.value.trim();
+            });
+
+            Swal.fire({ title: 'กำลังบันทึกข้อมูล...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+            try {
+                const res = await fetch(GAS_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'savePersonSection',
+                        sheetName: activeEditSheet,
+                        idCard: data.idCard,
+                        fullName: data.fullName,
+                        data: payloadData
+                    })
+                });
+                const result = await res.json();
+                closeModal('modal-edit-section');
+                await fetchSheetData();
+                Swal.fire({ icon: 'success', title: 'บันทึกข้อมูลสำเร็จ', timer: 1200, showConfirmButton: false });
+            } catch (err) {
+                console.error(err);
+                Swal.fire({ icon: 'error', title: 'บันทึกไม่สำเร็จ', text: err.toString() });
+            }
+        }
+
+        // --- Editing Multi-Row Sections (Sheet 2, 3, 5, 6) ---
+        function openEditMultiRowModal(sheetName) {
+            activeEditSheet = sheetName;
+            const data = getTargetPersonData();
+            const modal = document.getElementById('modal-edit-multirow');
+            const title = document.getElementById('multirow-modal-title');
+
+            const titlesMap = {
+                '2': 'จัดการประวัติการศึกษา (Sheet 2)',
+                '3': 'จัดการใบอนุญาตประกอบวิชาชีพ (Sheet 3)',
+                '5': 'จัดการประวัติวิทยฐานะ (Sheet 5)',
+                '6': 'จัดการเครื่องราชอิสริยาภรณ์ (Sheet 6)'
+            };
+            title.innerText = titlesMap[sheetName] || 'จัดการข้อมูล';
+
+            // Find headers
+            let headers = [];
+            if (appData[sheetName] && appData[sheetName].length > 0) {
+                headers = Object.keys(appData[sheetName][0]).filter(k => k !== 'ชื่อ-สกุล');
+            } else {
+                if (sheetName === '2') headers = ['ระดับการศึกษา', 'วุฒิการศึกษา', 'สาขาวิชาเอก', 'วุฒิการศึกษาสูงสุด', 'กลุ่มวิชาเอก'];
+                if (sheetName === '3') headers = ['ประเภทใบอนุญาต', 'เลขที่ใบอนุญาต', 'วันเดือนปีที่หมดอายุ'];
+                if (sheetName === '5') headers = ['วิทยฐานะ', 'สาขาวิชา', 'วันที่คำสั่งมีผล'];
+                if (sheetName === '6') headers = ['ชั้นตรา', 'ประจำปี', 'วันที่ประกาศในราชกิจจา', 'เล่ม/ตอน/หน้า'];
+            }
+
+            activeMultiRowHeaders = headers;
+            const currentRows = data['s' + sheetName] || [];
+            activeMultiRowData = JSON.parse(JSON.stringify(currentRows));
+
+            renderMultiRowInputs();
+            modal.classList.remove('hidden');
+        }
+
+        function renderMultiRowInputs() {
+            const container = document.getElementById('multirow-rows-container');
+            if (activeMultiRowData.length === 0) {
+                container.innerHTML = '<p class="text-center py-6 text-gray-400 text-xs italic">ยังไม่มีรายการข้อมูล กดปุ่ม "เพิ่มรายการใหม่" ด้านบนเพื่อเริ่มกรอก</p>';
+                return;
+            }
+
+            let html = '';
+            activeMultiRowData.forEach((row, idx) => {
+                html += `
+                    <div class="bg-slate-50 p-3 rounded-xl border border-gray-200 relative">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="bg-mkred-100 text-mkred-800 text-[10px] font-bold px-2 py-0.5 rounded">รายการที่ ${idx + 1}</span>
+                            <button type="button" onclick="removeMultiRowEntry(${idx})" class="text-red-500 hover:text-red-700 text-xs font-bold flex items-center gap-1">
+                                <i class="fas fa-trash-alt"></i> ลบรายการนี้
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 text-xs">
+                            ${activeMultiRowHeaders.map(h => `
+                                <div>
+                                    <label class="block font-semibold text-gray-600 mb-0.5 text-[11px]">${h}</label>
+                                    <input type="text" onchange="activeMultiRowData[${idx}]['${h}'] = this.value" value="${row[h] || ''}" class="w-full px-2.5 py-1.5 border rounded-lg text-xs">
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            });
             container.innerHTML = html;
         }
 
-        // --- Time Calculation (Tab 3) ---
+        function addMultiRowEntry() {
+            let newObj = {};
+            activeMultiRowHeaders.forEach(h => newObj[h] = '');
+            activeMultiRowData.push(newObj);
+            renderMultiRowInputs();
+        }
+
+        function removeMultiRowEntry(idx) {
+            activeMultiRowData.splice(idx, 1);
+            renderMultiRowInputs();
+        }
+
+        async function submitMultiRowForm() {
+            const data = getTargetPersonData();
+            Swal.fire({ title: 'กำลังบันทึกข้อมูล...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+            try {
+                const res = await fetch(GAS_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'savePersonSection',
+                        sheetName: activeEditSheet,
+                        idCard: data.idCard,
+                        fullName: data.fullName,
+                        data: activeMultiRowData
+                    })
+                });
+                const result = await res.json();
+                closeModal('modal-edit-multirow');
+                await fetchSheetData();
+                Swal.fire({ icon: 'success', title: 'บันทึกข้อมูลเรียบร้อยแล้ว', timer: 1200, showConfirmButton: false });
+            } catch (err) {
+                console.error(err);
+                Swal.fire({ icon: 'error', title: 'บันทึกไม่สำเร็จ', text: err.toString() });
+            }
+        }
+
+        // --- Time Calculations (Tab Time) ---
         function calculateAllTimes() {
-            if (!currentUser) return;
+            const data = getTargetPersonData();
+            if (!data.fullName) return;
             const targetDate = new Date(document.getElementById('target-date').value);
             const container = document.getElementById('time-data-container');
-            
+
             const getVal = (obj, cols) => {
-                for(let c of cols) { if(obj[c]) return obj[c]; }
+                for (let c of cols) { if (obj[c]) return obj[c]; }
                 return null;
             };
 
             const timesToCalc = [
-                { title: "อายุปัจจุบัน", dateStr: getVal(currentUser.s1, ['วันเดือนปีเกิด']), icon: "fa-birthday-cake", reverse: false },
-                { title: "อายุราชการ", dateStr: getVal(currentUser.s1, ['วันเข้าบรรจุ']) || getVal(currentUser.s4, ['วันที่บรรจุ']), icon: "fa-briefcase", reverse: false },
-                { title: "อายุราชการ ณ รร. ปัจจุบัน", dateStr: getVal(currentUser.s4, ['วันที่เข้าหน่วยงานปัจจุบัน']), icon: "fa-school", reverse: false },
-                { title: "ระยะเวลาที่ครองวิทยฐานะปัจจุบัน", dateStr: getVal(currentUser.s4, ['วันที่ดำรงตำแหน่งวิทยฐานะ']), icon: "fa-star", reverse: false },
-                { title: "เวลาที่เหลือก่อนเกษียณ", dateStr: getVal(currentUser.s1, ['วันเกษียณอายุ']), icon: "fa-hourglass-half", reverse: true }
+                { title: "อายุปัจจุบัน", dateStr: getVal(data.s1, ['วันเดือนปีเกิด']), icon: "fa-birthday-cake", reverse: false },
+                { title: "อายุราชการ", dateStr: getVal(data.s1, ['วันเข้าบรรจุ']) || getVal(data.s4, ['วันที่บรรจุ']), icon: "fa-briefcase", reverse: false },
+                { title: "อายุราชการ ณ รร. ปัจจุบัน", dateStr: getVal(data.s4, ['วันที่เข้าหน่วยงานปัจจุบัน']), icon: "fa-school", reverse: false },
+                { title: "ระยะเวลาที่ครองวิทยฐานะปัจจุบัน", dateStr: getVal(data.s4, ['วันที่ดำรงตำแหน่งวิทยฐานะ']), icon: "fa-star", reverse: false },
+                { title: "เวลาที่เหลือก่อนเกษียณ", dateStr: getVal(data.s1, ['วันเกษียณอายุ']), icon: "fa-hourglass-half", reverse: true }
             ];
 
-            // ดึงใบอนุญาตทั้งหมดมาคำนวณเวลาที่เหลือ
-            if (currentUser.s3 && currentUser.s3.length > 0) {
-                currentUser.s3.forEach(lic => {
-                    let licType = lic['ประเภทใบอนุญาต'] || 'ไม่ระบุประเภท';
+            if (data.s3 && data.s3.length > 0) {
+                data.s3.forEach(lic => {
                     timesToCalc.push({
-                        title: `เวลาที่เหลือของใบอนุญาตฯ<br><span class="text-xs text-mkred-600">(${licType})</span>`,
+                        title: `เวลาที่เหลือของใบอนุญาตฯ (${lic['ประเภทใบอนุญาต'] || 'วิชาชีพ'})`,
                         dateStr: lic['วันเดือนปีที่หมดอายุ'],
                         icon: "fa-id-badge",
                         reverse: true,
@@ -637,70 +1782,457 @@
             }
 
             let html = '';
-            
             timesToCalc.forEach(item => {
                 let d = parseDate(item.dateStr);
                 let result = "-";
                 let warningHtml = "";
 
                 if (d) {
-                    if (item.reverse) {
-                        result = calculateYMD(targetDate, d); // Target to Future Date
-                    } else {
-                        result = calculateYMD(d, targetDate); // Past Date to Target
-                    }
+                    result = item.reverse ? calculateYMD(targetDate, d) : calculateYMD(d, targetDate);
 
-                    // แจ้งเตือนถ้าเป็นใบอนุญาตและเหลือน้อยกว่า 6 เดือน (หรือเลยกำหนดแล้ว)
                     if (item.isLicense) {
                         let sixMonthsLater = new Date(targetDate);
                         sixMonthsLater.setMonth(sixMonthsLater.getMonth() + 6);
                         if (d < sixMonthsLater) {
-                            warningHtml = `<p class="text-sm font-bold text-red-600 animate-pulse mt-1"><i class="fas fa-exclamation-triangle mr-1"></i> โปรดต่อใบอนุญาต!!!</p>`;
+                            warningHtml = `<p class="text-xs font-bold text-red-600 animate-pulse mt-1"><i class="fas fa-exclamation-triangle"></i> โปรดรีบต่ออายุใบอนุญาต!</p>`;
                         }
                     }
                 }
                 
                 html += `
                     <div class="glass-card p-4 flex items-center shadow-sm hover:shadow-md transition">
-                        <div class="bg-mkred-100 p-3 rounded-full mr-4 text-mkred-700">
+                        <div class="bg-mkred-100 p-3 rounded-xl mr-4 text-mkred-700">
                             <i class="fas ${item.icon} text-2xl w-8 text-center"></i>
                         </div>
                         <div>
-                            <p class="text-gray-500 text-sm font-bold">${item.title}</p>
-                            <p class="text-lg font-bold text-gray-800 mt-1">${result}</p>
+                            <p class="text-gray-500 text-xs font-bold">${item.title}</p>
+                            <p class="text-base font-bold text-gray-800 mt-1">${result}</p>
                             ${warningHtml}
                         </div>
                     </div>
                 `;
             });
 
-            // เครื่องราชฯ (หาอันล่าสุด)
-            if(currentUser.s6.length > 0) {
-                 // Sort by date descending
-                 let validDec = currentUser.s6.filter(r => parseDate(r['วันที่ประกาศในราชกิจจา']));
-                 if(validDec.length > 0) {
-                    validDec.sort((a,b) => parseDate(b['วันที่ประกาศในราชกิจจา']) - parseDate(a['วันที่ประกาศในราชกิจจา']));
-                    let latestDec = validDec[0];
-                    let decResult = calculateYMD(parseDate(latestDec['วันที่ประกาศในราชกิจจา']), targetDate);
-                    
-                    html += `
-                        <div class="glass-card p-4 flex items-center shadow-sm hover:shadow-md transition border-l-4 border-mkyellow-500">
-                            <div class="bg-mkyellow-100 p-3 rounded-full mr-4 text-mkyellow-600">
-                                <i class="fas fa-medal text-2xl w-8 text-center"></i>
-                            </div>
-                            <div>
-                                <p class="text-gray-500 text-sm font-bold">ระยะเวลาที่ได้รับเครื่องราชฯ ล่าสุด</p>
-                                <p class="text-sm font-bold text-gray-600 truncate w-48">${latestDec['ชั้นตรา']}</p>
-                                <p class="text-lg font-bold text-mkred-800">${decResult}</p>
-                            </div>
-                        </div>
-                    `;
-                 }
-            }
-
             container.innerHTML = html;
         }
 
+        // --- Settings Tab Actions (Photo, Password, Telegram) ---
+        function renderSettingsTab() {
+            if (!currentUser) return;
+            const photoPicker = document.getElementById('admin-photo-person-container');
+            const pwdPicker = document.getElementById('admin-pwd-mode-container');
+            const tgCard = document.getElementById('admin-telegram-settings-card');
+
+            if (currentUser.role === 'admin') {
+                if (photoPicker) photoPicker.classList.remove('hidden');
+                if (pwdPicker) pwdPicker.classList.remove('hidden');
+                if (tgCard) tgCard.classList.remove('hidden');
+                loadTelegramConfig();
+            } else {
+                if (photoPicker) photoPicker.classList.add('hidden');
+                if (pwdPicker) pwdPicker.classList.add('hidden');
+                if (tgCard) tgCard.classList.add('hidden');
+            }
+
+            // Preview photo
+            let photoUrl = 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
+            if (currentUser.role === 'user') {
+                const sheet1 = appData['1'] || [];
+                const row = sheet1.find(r => String(r['เลขบัตรประชาชน']).replace(/\D/g, '') === String(currentUser.idCard).replace(/\D/g, ''));
+                if (row) photoUrl = row['รูปถ่าย'] || row['URL รูปถ่าย'] || photoUrl;
+            }
+            document.getElementById('settings-preview-photo').src = photoUrl;
+        }
+
+        function handleTargetPersonPhotoChange(idCard) {
+            const sheet1 = appData['1'] || [];
+            const row = sheet1.find(r => String(r['เลขบัตรประชาชน']).replace(/\D/g, '') === String(idCard).replace(/\D/g, ''));
+            const photoUrl = row ? (row['รูปถ่าย'] || row['URL รูปถ่าย'] || 'https://cdn-icons-png.flaticon.com/512/149/149071.png') : 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
+            document.getElementById('settings-preview-photo').src = photoUrl;
+        }
+
+        function handleSettingsPhotoSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                selectedSettingsPhoto = e.target.result;
+                selectedSettingsPhotoMeta = { fileName: file.name, mimeType: file.type };
+                document.getElementById('settings-preview-photo').src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function submitUploadPhoto() {
+            if (!selectedSettingsPhoto) {
+                Swal.fire({ icon: 'warning', title: 'กรุณาเลือกไฟล์ภาพถ่ายก่อน' });
+                return;
+            }
+
+            let targetIdCard = currentUser.role === 'admin' ? document.getElementById('settings-photo-target-person').value : currentUser.idCard;
+
+            Swal.fire({
+                title: 'กำลังอัปโหลดรูปภาพเข้า Google Drive...',
+                allowOutsideClick: false,
+                didOpen: () => Swal.showLoading()
+            });
+
+            try {
+                const res = await fetch(GAS_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'uploadPhoto',
+                        base64: selectedSettingsPhoto,
+                        fileName: selectedSettingsPhotoMeta.fileName,
+                        mimeType: selectedSettingsPhotoMeta.mimeType,
+                        idCard: targetIdCard
+                    })
+                });
+                const result = await res.json();
+                await fetchSheetData();
+                Swal.fire({ icon: 'success', title: 'อัปโหลดและเปลี่ยนรูปโปรไฟล์สำเร็จ' });
+            } catch (err) {
+                console.error(err);
+                Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาดในการอัปโหลด', text: err.toString() });
+            }
+        }
+
+        async function submitChangePassword() {
+            const oldPass = document.getElementById('pwd-old').value.trim();
+            const newPass = document.getElementById('pwd-new').value.trim();
+            const confirmPass = document.getElementById('pwd-confirm').value.trim();
+
+            if (newPass !== confirmPass) {
+                Swal.fire({ icon: 'warning', title: 'รหัสผ่านใหม่และการยืนยันรหัสผ่านไม่ตรงกัน' });
+                return;
+            }
+
+            let targetRole = currentUser.role;
+            let targetUsername = currentUser.username;
+
+            if (currentUser.role === 'admin') {
+                const selectedTarget = document.getElementById('settings-pwd-target').value;
+                if (selectedTarget === 'admin') {
+                    targetRole = 'admin';
+                    targetUsername = 'adminwmk';
+                } else {
+                    targetRole = 'user';
+                    targetUsername = selectedTarget;
+                }
+            }
+
+            Swal.fire({ title: 'กำลังเปลี่ยนรหัสผ่าน...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+            try {
+                const res = await fetch(GAS_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'changePassword',
+                        role: targetRole,
+                        username: targetUsername,
+                        oldPassword: oldPass,
+                        newPassword: newPass
+                    })
+                });
+                const result = await res.json();
+
+                if (result.status === 'success') {
+                    document.getElementById('pwd-old').value = '';
+                    document.getElementById('pwd-new').value = '';
+                    document.getElementById('pwd-confirm').value = '';
+                    Swal.fire({ icon: 'success', title: result.message || 'เปลี่ยนรหัสผ่านสำเร็จ' });
+                } else {
+                    Swal.fire({ icon: 'error', title: 'ไม่สามารถเปลี่ยนรหัสผ่านได้', text: result.message });
+                }
+            } catch (err) {
+                console.error(err);
+                Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: err.toString() });
+            }
+        }
+
+        // --- Telegram Integration Actions ---
+        async function loadTelegramConfig() {
+            try {
+                const res = await fetch(GAS_URL + '?action=getConfig');
+                const result = await res.json();
+                if (result.status === 'success' && result.config) {
+                    const c = result.config;
+                    document.getElementById('tg-token').value = c.telegramToken || '';
+                    document.getElementById('tg-chatid').value = c.telegramChatId || '';
+                    document.getElementById('chk-birthday').checked = c.notifyBirthday !== false;
+                    document.getElementById('chk-lic-6m').checked = c.notifyLicense6m !== false;
+                    document.getElementById('chk-lic-3m').checked = c.notifyLicense3m !== false;
+                    document.getElementById('chk-lic-exp').checked = c.notifyLicenseExpired !== false;
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function testTelegramConnection() {
+            const token = document.getElementById('tg-token').value.trim();
+            const chatId = document.getElementById('tg-chatid').value.trim();
+
+            if (!token || !chatId) {
+                Swal.fire({ icon: 'warning', title: 'กรุณากรอก Telegram Token และ Chat ID ก่อนทดสอบ' });
+                return;
+            }
+
+            Swal.fire({ title: 'กำลังส่งข้อความทดสอบไปยัง Telegram...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+            try {
+                const res = await fetch(GAS_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'testTelegram', token: token, chatId: chatId })
+                });
+                const result = await res.json();
+
+                if (result.status === 'success') {
+                    Swal.fire({ icon: 'success', title: 'ส่งข้อความสำเร็จ!', text: 'โปรดตรวจสอบข้อความในห้องแชท Telegram ของท่าน' });
+                } else {
+                    Swal.fire({ icon: 'error', title: 'ส่งไม่สำเร็จ', text: result.message || 'โปรดตรวจสอบความถูกต้องของ Token และ Chat ID' });
+                }
+            } catch (err) {
+                console.error(err);
+                Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: err.toString() });
+            }
+        }
+
+        async function saveTelegramSettings() {
+            const token = document.getElementById('tg-token').value.trim();
+            const chatId = document.getElementById('tg-chatid').value.trim();
+
+            const configObj = {
+                telegramToken: token,
+                telegramChatId: chatId,
+                notifyBirthday: document.getElementById('chk-birthday').checked,
+                notifyLicense6m: document.getElementById('chk-lic-6m').checked,
+                notifyLicense3m: document.getElementById('chk-lic-3m').checked,
+                notifyLicenseExpired: document.getElementById('chk-lic-exp').checked
+            };
+
+            Swal.fire({ title: 'กำลังบันทึกและตั้งเวลาแจ้งเตือน 10:00 น. ...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+            try {
+                const res = await fetch(GAS_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'saveConfig', config: configObj })
+                });
+                const result = await res.json();
+
+                if (result.status === 'success') {
+                    Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ!', text: 'ระบบจะเริ่มส่งแจ้งเตือนอัตโนมัติทุกวันเวลา 10:00 น.' });
+                } else {
+                    Swal.fire({ icon: 'error', title: 'บันทึกไม่สำเร็จ', text: result.message });
+                }
+            } catch (err) {
+                console.error(err);
+                Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: err.toString() });
+            }
+        }
+
+        // --- Add Personnel Modal (Admin Only) ---
+        function openAddPersonModal() {
+            document.getElementById('add-idcard').value = '';
+            document.getElementById('add-name').value = '';
+            document.getElementById('add-dob').value = '';
+            document.getElementById('add-pos').value = '';
+            document.getElementById('add-academic').value = '';
+            document.getElementById('add-phone').value = '';
+            document.getElementById('modal-add-person').classList.remove('hidden');
+        }
+
+        async function submitAddPerson() {
+            const idCard = document.getElementById('add-idcard').value.trim();
+            const name = document.getElementById('add-name').value.trim();
+
+            if (!idCard || !name) {
+                Swal.fire({ icon: 'warning', title: 'กรุณากรอกเลขบัตรประชาชนและชื่อ-สกุล' });
+                return;
+            }
+
+            Swal.fire({ title: 'กำลังเพิ่มบุคลากรใหม่...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+            try {
+                const payload = {
+                    action: 'savePerson',
+                    personData: {
+                        s1: {
+                            'เลขบัตรประชาชน': idCard,
+                            'ชื่อ-สกุล': name,
+                            'วันเดือนปีเกิด': document.getElementById('add-dob').value.trim(),
+                            'เบอร์โทรศัพท์': document.getElementById('add-phone').value.trim(),
+                            'password': '123456'
+                        },
+                        s4: {
+                            'ชื่อ-สกุล': name,
+                            'ตำแหน่ง': document.getElementById('add-pos').value.trim(),
+                            'วิทยฐานะ': document.getElementById('add-academic').value.trim()
+                        }
+                    }
+                };
+
+                const res = await fetch(GAS_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                const result = await res.json();
+
+                closeModal('modal-add-person');
+                await fetchSheetData();
+                Swal.fire({ icon: 'success', title: 'เพิ่มประวัติบุคลากรใหม่เรียบร้อยแล้ว' });
+            } catch (err) {
+                console.error(err);
+                Swal.fire({ icon: 'error', title: 'เพิ่มไม่สำเร็จ', text: err.toString() });
+            }
+        }
+
+        // --- Printable Profile Modal (PDF) ---
+        function printCurrentPersonProfile() {
+            const data = getTargetPersonData();
+            if (data.idCard) viewPrintableProfile(data.idCard);
+        }
+
+        function viewPrintableProfile(idCard) {
+            const sheet1 = appData['1'] || [];
+            const userRow = sheet1.find(row => String(row['เลขบัตรประชาชน']).replace(/\D/g, '') === String(idCard).replace(/\D/g, ''));
+            if (!userRow) {
+                Swal.fire({ icon: 'error', title: 'ไม่พบข้อมูลบุคคลนี้' });
+                return;
+            }
+
+            const fullName = String(userRow['ชื่อ-สกุล']).trim();
+            const cleanName = fullName.replace(/\s+/g, ' ');
+
+            const findByName = (sheet) => (sheet || []).find(r => String(r['ชื่อ-สกุล']).replace(/\s+/g, ' ').trim() === cleanName) || {};
+            const filterByName = (sheet) => (sheet || []).filter(r => String(r['ชื่อ-สกุล']).replace(/\s+/g, ' ').trim() === cleanName) || [];
+
+            const pData = {
+                s1: userRow,
+                s2: filterByName(appData['2']),
+                s3: filterByName(appData['3']),
+                s4: findByName(appData['4']),
+                s5: filterByName(appData['5']),
+                s6: filterByName(appData['6'])
+            };
+
+            const photoImg = document.getElementById('print-photo');
+            const photoPlaceholder = document.getElementById('print-photo-placeholder');
+            const photoUrl = pData.s1['รูปถ่าย'] || pData.s1['URL รูปถ่าย'];
+            if (photoUrl) {
+                photoImg.src = photoUrl;
+                photoImg.classList.remove('hidden');
+                photoPlaceholder.classList.add('hidden');
+            } else {
+                photoImg.classList.add('hidden');
+                photoPlaceholder.classList.remove('hidden');
+            }
+
+            document.getElementById('print-generated-date').innerText = formatThaiDate(new Date());
+
+            let contentHtml = `
+                <div>
+                    <h4 class="font-bold border-b border-gray-400 pb-1 mb-2 text-mkred-900">1. ข้อมูลส่วนบุคคล</h4>
+                    <table class="w-full text-xs border-collapse">
+                        <tr>
+                            <td class="py-1 font-bold w-1/4">ชื่อ-นามสกุล:</td>
+                            <td class="py-1 w-1/4">${pData.s1['ชื่อ-สกุล']}</td>
+                            <td class="py-1 font-bold w-1/4">เลขบัตรประชาชน:</td>
+                            <td class="py-1 w-1/4">${pData.s1['เลขบัตรประชาชน'] || '-'}</td>
+                        </tr>
+                        <tr>
+                            <td class="py-1 font-bold">วันเดือนปีเกิด:</td>
+                            <td class="py-1">${formatThaiDate(pData.s1['วันเดือนปีเกิด'])}</td>
+                            <td class="py-1 font-bold">เพศ / ศาสนา / หมู่เลือด:</td>
+                            <td class="py-1">${pData.s1['เพศ'] || '-'} / ${pData.s1['ศาสนา'] || '-'} / ${pData.s1['หมู่เลือด'] || '-'}</td>
+                        </tr>
+                        <tr>
+                            <td class="py-1 font-bold">เบอร์โทรศัพท์:</td>
+                            <td class="py-1">${pData.s1['เบอร์โทรศัพท์'] || '-'}</td>
+                            <td class="py-1 font-bold">อีเมล:</td>
+                            <td class="py-1">${pData.s1['E-mail'] || '-'}</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div>
+                    <h4 class="font-bold border-b border-gray-400 pb-1 mb-2 text-mkred-900">2. ข้อมูลตำแหน่งและการทำงาน</h4>
+                    <table class="w-full text-xs border-collapse">
+                        <tr>
+                            <td class="py-1 font-bold w-1/4">ตำแหน่งปัจจุบัน:</td>
+                            <td class="py-1 w-1/4">${pData.s4['ตำแหน่ง'] || '-'}</td>
+                            <td class="py-1 font-bold w-1/4">วิทยฐานะ:</td>
+                            <td class="py-1 w-1/4">${pData.s4['วิทยฐานะ'] || '-'}</td>
+                        </tr>
+                        <tr>
+                            <td class="py-1 font-bold">ประเภทบุคลากร:</td>
+                            <td class="py-1">${pData.s4['ประเภทบุคลากร'] || '-'}</td>
+                            <td class="py-1 font-bold">เลขที่ตำแหน่ง:</td>
+                            <td class="py-1">${pData.s4['เลขที่ตำแหน่ง'] || '-'}</td>
+                        </tr>
+                        <tr>
+                            <td class="py-1 font-bold">เงินเดือนปัจจุบัน:</td>
+                            <td class="py-1">${pData.s4['เงินเดือน'] ? Number(pData.s4['เงินเดือน']).toLocaleString() + ' บาท' : '-'}</td>
+                            <td class="py-1 font-bold">วันที่เข้าบรรจุ:</td>
+                            <td class="py-1">${formatThaiDate(pData.s4['วันที่บรรจุ'] || pData.s1['วันเข้าบรรจุ'])}</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div>
+                    <h4 class="font-bold border-b border-gray-400 pb-1 mb-2 text-mkred-900">3. ประวัติการศึกษา</h4>
+                    <table class="w-full text-xs border border-gray-300 text-center">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="border border-gray-300 p-1">ระดับการศึกษา</th>
+                                <th class="border border-gray-300 p-1">วุฒิการศึกษา</th>
+                                <th class="border border-gray-300 p-1">สาขาวิชาเอก</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${pData.s2.length > 0 ? pData.s2.map(e => `
+                                <tr>
+                                    <td class="border border-gray-300 p-1">${e['ระดับการศึกษา'] || '-'}</td>
+                                    <td class="border border-gray-300 p-1">${e['วุฒิการศึกษา'] || '-'}</td>
+                                    <td class="border border-gray-300 p-1">${e['สาขาวิชาเอก'] || '-'}</td>
+                                </tr>
+                            `).join('') : '<tr><td colspan="3" class="p-2 text-center border">- ไม่มีข้อมูล -</td></tr>'}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div>
+                    <h4 class="font-bold border-b border-gray-400 pb-1 mb-2 text-mkred-900">4. เครื่องราชอิสริยาภรณ์ที่ได้รับ</h4>
+                    <table class="w-full text-xs border border-gray-300 text-center">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="border border-gray-300 p-1">ชั้นตรา</th>
+                                <th class="border border-gray-300 p-1">ประจำปี พ.ศ.</th>
+                                <th class="border border-gray-300 p-1">วันที่ประกาศในราชกิจจานุเบกษา</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${pData.s6.length > 0 ? pData.s6.map(d => `
+                                <tr>
+                                    <td class="border border-gray-300 p-1">${d['ชั้นตรา'] || '-'}</td>
+                                    <td class="border border-gray-300 p-1">${d['ประจำปี'] || '-'}</td>
+                                    <td class="border border-gray-300 p-1">${formatThaiDate(d['วันที่ประกาศในราชกิจจา'])}</td>
+                                </tr>
+                            `).join('') : '<tr><td colspan="3" class="p-2 text-center border">- ไม่มีข้อมูล -</td></tr>'}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            document.getElementById('printable-content').innerHTML = contentHtml;
+            document.getElementById('modal-print-profile').classList.remove('hidden');
+        }
+
+        function closeModal(id) {
+            const el = document.getElementById(id);
+            if (el) el.classList.add('hidden');
+        }
     </script>
 </body>
 </html>
