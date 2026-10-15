@@ -44,7 +44,27 @@
         .spinner { border: 4px solid rgba(0, 0, 0, 0.1); width: 45px; height: 45px; border-radius: 50%; border-left-color: #C53030; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
-        /* Print Profile */
+        /* Inline input styling */
+        .inline-input {
+            width: 100%;
+            padding: 0.35rem 0.6rem;
+            font-size: 0.75rem;
+            border-radius: 0.5rem;
+            border: 1.5px solid #CBD5E1;
+            background-color: #FFFFFF;
+            transition: all 0.15s ease;
+        }
+        .inline-input:focus {
+            outline: none;
+            border-color: #C53030;
+            box-shadow: 0 0 0 2px rgba(197, 48, 48, 0.2);
+            background-color: #FFFDFD;
+        }
+
+        /* Toggle switch */
+        .toggle-checkbox:checked { right: 0; border-color: #C53030; }
+        .toggle-checkbox:checked + .toggle-label { background-color: #C53030; }
+
         @media print {
             body * { visibility: hidden; }
             #printable-area, #printable-area * { visibility: visible; }
@@ -73,7 +93,7 @@
                 </div>
             </div>
             
-            <!-- User Session / Refresh -->
+            <!-- User Session / Fast Refresh -->
             <div class="flex items-center gap-3">
                 <div id="user-badge" class="hidden bg-mkred-900/80 backdrop-blur px-3 py-1.5 rounded-xl border border-red-700/60 flex items-center gap-2">
                     <img id="header-avatar" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" class="w-8 h-8 rounded-full object-cover border border-amber-300">
@@ -83,8 +103,9 @@
                     </div>
                 </div>
 
-                <button onclick="fetchSheetData(true)" class="bg-mkred-700 hover:bg-mkred-600 text-white p-2 rounded-lg text-sm transition shadow" title="รีเฟรชข้อมูล">
+                <button onclick="fetchSheetData(true)" class="bg-mkred-700 hover:bg-mkred-600 text-white p-2 rounded-lg text-sm transition shadow flex items-center gap-1.5" title="รีเฟรชข้อมูลสด">
                     <i class="fas fa-sync-alt" id="refresh-icon"></i>
+                    <span class="text-xs hidden sm:inline">รีเฟรช</span>
                 </button>
 
                 <button id="header-logout-btn" onclick="logout()" class="hidden bg-white/20 hover:bg-white/30 text-white text-xs px-3 py-2 rounded-lg font-bold transition flex items-center gap-1.5">
@@ -210,7 +231,7 @@
             </div>
         </section>
 
-        <!-- ================= TAB: Login (Before Login) ================= -->
+        <!-- ================= TAB: Login ================= -->
         <section id="tab-login" class="hidden flex flex-col items-center justify-center py-10">
             <div class="glass-card p-8 max-w-md w-full text-center border-t-8 border-mkred-700 shadow-xl">
                 <div class="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 text-mkred-700 shadow-inner">
@@ -254,7 +275,6 @@
 
         <!-- ================= TAB: Personnel Records List (Protected) ================= -->
         <section id="tab-personnel" class="hidden space-y-6">
-            <!-- Filter & Action Bar -->
             <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex flex-col lg:flex-row justify-between items-center gap-4">
                 <div class="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto flex-grow">
                     <div class="relative w-full sm:w-72">
@@ -270,11 +290,9 @@
                 </div>
 
                 <div class="flex items-center gap-2 w-full lg:w-auto justify-end">
-                    <!-- Export Button: Changes based on role -->
                     <button onclick="handleExportExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2 rounded-lg text-sm transition flex items-center gap-2 shadow-sm">
                         <i class="fas fa-file-excel"></i> <span id="btn-export-text">ส่งออก Excel</span>
                     </button>
-                    <!-- Add Personnel Button: ONLY for Admin -->
                     <button id="btn-add-person" onclick="openAddPersonModal()" class="hidden bg-mkred-700 hover:bg-mkred-800 text-white font-medium px-4 py-2 rounded-lg text-sm transition flex items-center gap-2 shadow-sm">
                         <i class="fas fa-user-plus"></i> <span>เพิ่มประวัติบุคลากร</span>
                     </button>
@@ -287,10 +305,10 @@
             </div>
         </section>
 
-        <!-- ================= TAB: Personal Info Detailed View (Protected) ================= -->
+        <!-- ================= TAB: Personal Info (Inline Editing Protected) ================= -->
         <section id="tab-personal" class="hidden space-y-6">
-            <!-- Header bar for Personal info -->
-            <div class="flex flex-col sm:flex-row justify-between items-center bg-gradient-to-r from-mkyellow-400 to-amber-400 p-4 rounded-xl shadow-md gap-4">
+            <!-- Header bar for Personal info & Inline Edit Mode Switch -->
+            <div class="flex flex-col md:flex-row justify-between items-center bg-gradient-to-r from-mkyellow-400 to-amber-400 p-4 rounded-xl shadow-md gap-4">
                 <div class="flex items-center gap-3">
                     <img id="personal-top-avatar" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" class="w-12 h-12 rounded-full object-cover border-2 border-white shadow-sm">
                     <div>
@@ -298,22 +316,37 @@
                         <h2 class="text-xl font-bold text-mkred-900" id="personal-fullname">-</h2>
                     </div>
                 </div>
-                <div class="flex items-center gap-2">
-                    <!-- If Admin, dropdown to select person to view/edit -->
-                    <div id="admin-person-picker" class="hidden flex items-center gap-2 bg-white px-2 py-1 rounded-lg shadow-sm">
+
+                <div class="flex flex-wrap items-center gap-3">
+                    <!-- Admin Person Selector -->
+                    <div id="admin-person-picker" class="hidden flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg shadow-sm">
                         <label class="text-xs font-bold text-gray-700">เลือกบุคลากร:</label>
-                        <select id="select-target-person" onchange="switchTargetPerson(this.value)" class="text-xs border rounded p-1">
+                        <select id="select-target-person" onchange="switchTargetPerson(this.value)" class="text-xs border rounded p-1 font-semibold">
                             <!-- Populated with all personnel -->
                         </select>
                     </div>
 
-                    <button onclick="printCurrentPersonProfile()" class="bg-mkred-800 hover:bg-mkred-900 text-white font-bold text-xs px-3 py-2 rounded-lg shadow-sm flex items-center gap-1.5 transition">
+                    <!-- Inline Edit Mode Toggle Button -->
+                    <button id="btn-toggle-inline-edit" onclick="toggleInlineEditMode()" class="bg-white hover:bg-slate-100 text-mkred-800 font-extrabold text-xs px-3.5 py-2 rounded-lg shadow-sm border border-amber-300 flex items-center gap-2 transition">
+                        <i class="fas fa-pen-to-square text-mkred-600"></i>
+                        <span id="label-toggle-inline-edit">เปิดโหมดแก้ไขข้อมูล (Inline Edit)</span>
+                    </button>
+
+                    <button onclick="printCurrentPersonProfile()" class="bg-mkred-800 hover:bg-mkred-900 text-white font-bold text-xs px-3.5 py-2 rounded-lg shadow-sm flex items-center gap-1.5 transition">
                         <i class="fas fa-print"></i> <span>พิมพ์ใบประวัติ (PDF)</span>
                     </button>
                 </div>
             </div>
 
-            <!-- Detailed Sections Grid (Sheets 1 to 6) -->
+            <!-- Status Indicator if Edit Mode is Active -->
+            <div id="inline-edit-indicator" class="hidden bg-amber-50 border-l-4 border-amber-500 p-3 rounded-lg text-xs text-amber-900 font-medium flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-info-circle text-amber-600 text-base"></i>
+                    <span>โหมดแก้ไขข้อมูลเปิดอยู่: สามารถพิมพ์แก้ไขข้อความในช่องได้โดยตรง และกดปุ่ม <b>"บันทึกข้อมูล"</b> ประจำหมวดหมู่นั้นๆ</span>
+                </div>
+            </div>
+
+            <!-- Detailed Sections with Inline Editable Fields (Sheets 1 to 6) -->
             <div class="space-y-6" id="personal-sections-container">
                 <!-- 1. ข้อมูลพื้นฐานส่วนบุคคล (Sheet 1) -->
                 <div class="glass-card p-5">
@@ -321,8 +354,8 @@
                         <h3 class="text-base font-bold text-mkred-800 flex items-center gap-2">
                             <i class="fas fa-user text-mkred-600"></i> หมวดที่ 1: ข้อมูลส่วนบุคคลพื้นฐาน (Sheet 1)
                         </h3>
-                        <button onclick="openEditSectionModal('1')" class="bg-amber-100 hover:bg-amber-200 text-amber-900 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition">
-                            <i class="fas fa-edit"></i> แก้ไขข้อมูลพื้นฐาน
+                        <button id="btn-save-sec1" onclick="saveInlineSection1()" class="hidden bg-mkred-700 hover:bg-mkred-800 text-white font-bold text-xs px-4 py-2 rounded-lg shadow transition flex items-center gap-1.5">
+                            <i class="fas fa-save"></i> บันทึกข้อมูลพื้นฐาน
                         </button>
                     </div>
                     <div id="sec1-content" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs"></div>
@@ -334,9 +367,14 @@
                         <h3 class="text-base font-bold text-mkred-800 flex items-center gap-2">
                             <i class="fas fa-graduation-cap text-mkred-600"></i> หมวดที่ 2: ประวัติการศึกษา (Sheet 2)
                         </h3>
-                        <button onclick="openEditMultiRowModal('2')" class="bg-amber-100 hover:bg-amber-200 text-amber-900 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition">
-                            <i class="fas fa-edit"></i> จัดการ/แก้ไขการศึกษา
-                        </button>
+                        <div class="flex items-center gap-2">
+                            <button id="btn-add-sec2" onclick="addInlineTableRow('2')" class="hidden bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3 py-1.5 rounded-lg shadow flex items-center gap-1">
+                                <i class="fas fa-plus"></i> เพิ่มแถว
+                            </button>
+                            <button id="btn-save-sec2" onclick="saveInlineTableSection('2')" class="hidden bg-mkred-700 hover:bg-mkred-800 text-white font-bold text-xs px-4 py-1.5 rounded-lg shadow transition flex items-center gap-1.5">
+                                <i class="fas fa-save"></i> บันทึกประวัติการศึกษา
+                            </button>
+                        </div>
                     </div>
                     <div id="sec2-content" class="overflow-x-auto"></div>
                 </div>
@@ -347,9 +385,14 @@
                         <h3 class="text-base font-bold text-mkred-800 flex items-center gap-2">
                             <i class="fas fa-certificate text-mkred-600"></i> หมวดที่ 3: ใบอนุญาตประกอบวิชาชีพ (Sheet 3)
                         </h3>
-                        <button onclick="openEditMultiRowModal('3')" class="bg-amber-100 hover:bg-amber-200 text-amber-900 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition">
-                            <i class="fas fa-edit"></i> จัดการ/แก้ไขใบอนุญาต
-                        </button>
+                        <div class="flex items-center gap-2">
+                            <button id="btn-add-sec3" onclick="addInlineTableRow('3')" class="hidden bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3 py-1.5 rounded-lg shadow flex items-center gap-1">
+                                <i class="fas fa-plus"></i> เพิ่มแถว
+                            </button>
+                            <button id="btn-save-sec3" onclick="saveInlineTableSection('3')" class="hidden bg-mkred-700 hover:bg-mkred-800 text-white font-bold text-xs px-4 py-1.5 rounded-lg shadow transition flex items-center gap-1.5">
+                                <i class="fas fa-save"></i> บันทึกใบอนุญาต
+                            </button>
+                        </div>
                     </div>
                     <div id="sec3-content" class="overflow-x-auto"></div>
                 </div>
@@ -360,8 +403,8 @@
                         <h3 class="text-base font-bold text-mkred-800 flex items-center gap-2">
                             <i class="fas fa-briefcase text-mkred-600"></i> หมวดที่ 4: ข้อมูลตำแหน่งและการทำงาน (Sheet 4)
                         </h3>
-                        <button onclick="openEditSectionModal('4')" class="bg-amber-100 hover:bg-amber-200 text-amber-900 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition">
-                            <i class="fas fa-edit"></i> แก้ไขข้อมูลตำแหน่ง
+                        <button id="btn-save-sec4" onclick="saveInlineSection4()" class="hidden bg-mkred-700 hover:bg-mkred-800 text-white font-bold text-xs px-4 py-2 rounded-lg shadow transition flex items-center gap-1.5">
+                            <i class="fas fa-save"></i> บันทึกข้อมูลตำแหน่ง
                         </button>
                     </div>
                     <div id="sec4-content" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs"></div>
@@ -373,9 +416,14 @@
                         <h3 class="text-base font-bold text-mkred-800 flex items-center gap-2">
                             <i class="fas fa-star text-mkred-600"></i> หมวดที่ 5: ประวัติวิทยฐานะ (Sheet 5)
                         </h3>
-                        <button onclick="openEditMultiRowModal('5')" class="bg-amber-100 hover:bg-amber-200 text-amber-900 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition">
-                            <i class="fas fa-edit"></i> จัดการ/แก้ไขวิทยฐานะ
-                        </button>
+                        <div class="flex items-center gap-2">
+                            <button id="btn-add-sec5" onclick="addInlineTableRow('5')" class="hidden bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3 py-1.5 rounded-lg shadow flex items-center gap-1">
+                                <i class="fas fa-plus"></i> เพิ่มแถว
+                            </button>
+                            <button id="btn-save-sec5" onclick="saveInlineTableSection('5')" class="hidden bg-mkred-700 hover:bg-mkred-800 text-white font-bold text-xs px-4 py-1.5 rounded-lg shadow transition flex items-center gap-1.5">
+                                <i class="fas fa-save"></i> บันทึกวิทยฐานะ
+                            </button>
+                        </div>
                     </div>
                     <div id="sec5-content" class="overflow-x-auto"></div>
                 </div>
@@ -386,16 +434,21 @@
                         <h3 class="text-base font-bold text-mkred-800 flex items-center gap-2">
                             <i class="fas fa-medal text-mkred-600"></i> หมวดที่ 6: เครื่องราชอิสริยาภรณ์ (Sheet 6)
                         </h3>
-                        <button onclick="openEditMultiRowModal('6')" class="bg-amber-100 hover:bg-amber-200 text-amber-900 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition">
-                            <i class="fas fa-edit"></i> จัดการ/แก้ไขเครื่องราชฯ
-                        </button>
+                        <div class="flex items-center gap-2">
+                            <button id="btn-add-sec6" onclick="addInlineTableRow('6')" class="hidden bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3 py-1.5 rounded-lg shadow flex items-center gap-1">
+                                <i class="fas fa-plus"></i> เพิ่มแถว
+                            </button>
+                            <button id="btn-save-sec6" onclick="saveInlineTableSection('6')" class="hidden bg-mkred-700 hover:bg-mkred-800 text-white font-bold text-xs px-4 py-1.5 rounded-lg shadow transition flex items-center gap-1.5">
+                                <i class="fas fa-save"></i> บันทึกเครื่องราชฯ
+                            </button>
+                        </div>
                     </div>
                     <div id="sec6-content" class="overflow-x-auto"></div>
                 </div>
             </div>
         </section>
 
-        <!-- ================= TAB: Time Calculation (Protected) ================= -->
+        <!-- ================= TAB: Time Calculation ================= -->
         <section id="tab-time" class="hidden space-y-6">
             <div class="flex flex-col md:flex-row justify-between items-center bg-gradient-to-r from-mkyellow-400 to-amber-400 p-4 rounded-xl shadow-md gap-4">
                 <h2 class="text-lg md:text-xl font-bold text-mkred-900 flex items-center gap-2">
@@ -412,7 +465,7 @@
             </div>
         </section>
 
-        <!-- ================= TAB: Settings (Protected) ================= -->
+        <!-- ================= TAB: Settings ================= -->
         <section id="tab-settings" class="hidden space-y-6 max-w-4xl mx-auto">
             <div class="bg-mkred-800 text-white p-4 rounded-xl shadow flex items-center gap-3">
                 <i class="fas fa-cog text-3xl text-mkyellow-400"></i>
@@ -422,10 +475,10 @@
                 </div>
             </div>
 
-            <!-- Settings Card 1: Change Profile Photo -->
+            <!-- Settings Card 1: Change Profile Photo with Auto Compression -->
             <div class="glass-card p-6">
                 <h3 class="text-base font-bold text-mkred-800 border-b pb-2 mb-4 flex items-center gap-2">
-                    <i class="fas fa-camera text-mkred-600"></i> อัปโหลดเปลี่ยนรูปโปรไฟล์ (เข้า Google Drive)
+                    <i class="fas fa-camera text-mkred-600"></i> อัปโหลดรูปโปรไฟล์ (เข้า Google Drive ID: 1aNoq78PvihZC5_BLPxyBbHxyzlF9k9ns)
                 </h3>
                 
                 <div class="flex flex-col sm:flex-row items-center gap-6">
@@ -433,7 +486,6 @@
                         <img id="settings-preview-photo" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" class="w-full h-full object-cover">
                     </div>
                     <div class="space-y-3 flex-grow text-center sm:text-left">
-                        <!-- If Admin: Select Target Person to change photo -->
                         <div id="admin-photo-person-container" class="hidden">
                             <label class="block text-xs font-bold text-gray-700 mb-1">เลือกบุคลากรที่ต้องการเปลี่ยนรูป:</label>
                             <select id="settings-photo-target-person" onchange="handleTargetPersonPhotoChange(this.value)" class="w-full sm:w-72 px-3 py-2 border rounded-lg text-xs">
@@ -444,7 +496,7 @@
                         <div>
                             <label class="block text-xs font-bold text-gray-700 mb-1">เลือกไฟล์รูปถ่ายใหม่:</label>
                             <input type="file" id="settings-photo-file" accept="image/*" onchange="handleSettingsPhotoSelect(event)" class="text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-mkred-50 file:text-mkred-700 hover:file:bg-mkred-100">
-                            <p class="text-[11px] text-gray-400 mt-1">แนะนำไฟล์ภาพหน้าตรง สวมเครื่องแบบหรือชุดสุภาพ (JPG/PNG)</p>
+                            <p class="text-[11px] text-gray-400 mt-1">⚡ มีระบบบีบอัดรูปภาพอัตโนมัติก่อนส่งขึ้น Google Drive (อัปโหลดไว ปลอดภัย)</p>
                         </div>
 
                         <button onclick="submitUploadPhoto()" class="bg-mkred-700 hover:bg-mkred-800 text-white font-bold text-xs px-4 py-2 rounded-lg shadow transition flex items-center gap-2 mx-auto sm:mx-0">
@@ -461,12 +513,10 @@
                 </h3>
 
                 <form onsubmit="event.preventDefault(); submitChangePassword();" class="max-w-md space-y-4">
-                    <!-- If Admin: Can choose to change admin's password or reset a staff's password -->
                     <div id="admin-pwd-mode-container" class="hidden">
                         <label class="block text-xs font-bold text-gray-700 mb-1">เลือกผู้ใช้งานที่ต้องการเปลี่ยนรหัสผ่าน:</label>
                         <select id="settings-pwd-target" class="w-full px-3 py-2 border rounded-lg text-xs">
                             <option value="admin">รหัสผ่านแอดมิน (adminwmk)</option>
-                            <!-- Personnel options injected here -->
                         </select>
                     </div>
 
@@ -538,7 +588,6 @@
                         </div>
                     </div>
 
-                    <!-- Action Buttons -->
                     <div class="flex flex-wrap items-center gap-3 pt-2">
                         <button onclick="testTelegramConnection()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-4 py-2.5 rounded-lg shadow transition flex items-center gap-2">
                             <i class="fab fa-telegram-plane"></i> ทดสอบส่งข้อความ Telegram
@@ -549,6 +598,27 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Settings Card 4: Database Schema & Header Manager (ADMIN ONLY) -->
+            <div id="admin-schema-card" class="glass-card p-6 hidden">
+                <div class="flex justify-between items-center border-b pb-2 mb-4">
+                    <h3 class="text-base font-bold text-mkred-800 flex items-center gap-2">
+                        <i class="fas fa-table text-emerald-600 text-lg"></i> จัดการฐานข้อมูลและโครงสร้างหัวตาราง (Google Sheets)
+                    </h3>
+                    <span class="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded">เฉพาะแอดมิน</span>
+                </div>
+                <p class="text-xs text-gray-600 mb-4 leading-relaxed">
+                    หากใน Google Sheet มีชีทใดขาดหายไป (1-6, Config) หรือยังไม่มีคอลัมน์ที่จำเป็นสำหรับการบันทึกข้อมูล สามารถกดปุ่มด้านล่างเพื่อให้ระบบตรวจสอบและสร้าง/เพิ่มคอลัมน์ให้อัตโนมัติ โดยไม่ลบหรือกระทบข้อมูลเดิม
+                </p>
+                <div class="flex flex-wrap items-center gap-3">
+                    <button onclick="syncSheetHeaders()" class="bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs px-4 py-2.5 rounded-lg shadow transition flex items-center gap-2">
+                        <i class="fas fa-magic"></i> ตรวจสอบและสร้างหัวตารางอัตโนมัติใน Google Sheet
+                    </button>
+                    <button onclick="fetchSheetData(true)" class="bg-slate-700 hover:bg-slate-800 text-white font-bold text-xs px-4 py-2.5 rounded-lg shadow transition flex items-center gap-2">
+                        <i class="fas fa-sync-alt"></i> ล้างแคชและดึงข้อมูลสด
+                    </button>
+                </div>
+            </div>
         </section>
 
     </main>
@@ -557,60 +627,6 @@
     <footer class="bg-gray-900 text-gray-400 text-center py-4 text-xs mt-auto border-t border-gray-800">
         <p>โรงเรียนวัดแม่กะ © 2026 ระบบสารสนเทศทะเบียนประวัติข้าราชการและบุคลากรทางการศึกษา</p>
     </footer>
-
-    <!-- ================= MODAL: Section Single Row Edit (Sheet 1 & 4) ================= -->
-    <div id="modal-edit-section" class="fixed inset-0 bg-black/70 z-50 hidden overflow-y-auto p-4 flex justify-center items-start">
-        <div class="bg-white rounded-2xl max-w-2xl w-full my-8 p-6 shadow-2xl relative">
-            <div class="flex justify-between items-center border-b pb-3 mb-4">
-                <h3 class="text-base font-bold text-mkred-800" id="section-modal-title">แก้ไขข้อมูล</h3>
-                <button onclick="closeModal('modal-edit-section')" class="text-gray-400 hover:text-gray-600 text-xl px-2">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <form onsubmit="event.preventDefault(); submitSectionForm();" class="space-y-4">
-                <div id="section-form-fields" class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs max-h-[60vh] overflow-y-auto p-1">
-                    <!-- Dynamic input fields -->
-                </div>
-                <div class="border-t pt-4 flex justify-end gap-2">
-                    <button type="button" onclick="closeModal('modal-edit-section')" class="px-4 py-2 bg-gray-200 text-gray-700 font-bold rounded-lg text-xs">ยกเลิก</button>
-                    <button type="submit" class="px-5 py-2 bg-mkred-700 hover:bg-mkred-800 text-white font-bold rounded-lg text-xs shadow flex items-center gap-1.5">
-                        <i class="fas fa-save"></i> บันทึกข้อมูล
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- ================= MODAL: Multi-Row Edit (Sheet 2, 3, 5, 6) ================= -->
-    <div id="modal-edit-multirow" class="fixed inset-0 bg-black/70 z-50 hidden overflow-y-auto p-4 flex justify-center items-start">
-        <div class="bg-white rounded-2xl max-w-4xl w-full my-8 p-6 shadow-2xl relative">
-            <div class="flex justify-between items-center border-b pb-3 mb-4">
-                <h3 class="text-base font-bold text-mkred-800" id="multirow-modal-title">จัดการข้อมูล</h3>
-                <button onclick="closeModal('modal-edit-multirow')" class="text-gray-400 hover:text-gray-600 text-xl px-2">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            
-            <div class="flex justify-between items-center mb-3">
-                <p class="text-xs text-gray-500">สามารถเพิ่ม ลบ หรือแก้ไขข้อมูลแต่ละรายการได้</p>
-                <button type="button" onclick="addMultiRowEntry()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3 py-1.5 rounded-lg shadow flex items-center gap-1">
-                    <i class="fas fa-plus"></i> เพิ่มรายการใหม่
-                </button>
-            </div>
-
-            <form onsubmit="event.preventDefault(); submitMultiRowForm();" class="space-y-4">
-                <div id="multirow-rows-container" class="space-y-3 max-h-[60vh] overflow-y-auto p-1">
-                    <!-- Dynamic rows container -->
-                </div>
-                <div class="border-t pt-4 flex justify-end gap-2">
-                    <button type="button" onclick="closeModal('modal-edit-multirow')" class="px-4 py-2 bg-gray-200 text-gray-700 font-bold rounded-lg text-xs">ยกเลิก</button>
-                    <button type="submit" class="px-5 py-2 bg-mkred-700 hover:bg-mkred-800 text-white font-bold rounded-lg text-xs shadow flex items-center gap-1.5">
-                        <i class="fas fa-save"></i> บันทึกข้อมูลทั้งหมด
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
 
     <!-- ================= MODAL: Add Personnel (Admin Only) ================= -->
     <div id="modal-add-person" class="fixed inset-0 bg-black/70 z-50 hidden overflow-y-auto p-4 flex justify-center items-start">
@@ -675,7 +691,6 @@
                 </div>
             </div>
 
-            <!-- Print View Content Area -->
             <div id="printable-area" class="text-gray-900 font-sans leading-relaxed">
                 <div class="text-center border-b-2 border-mkred-800 pb-4 mb-6">
                     <div class="flex justify-between items-start mb-2">
@@ -692,9 +707,7 @@
                     </div>
                 </div>
 
-                <div id="printable-content" class="space-y-6 text-xs">
-                    <!-- Dynamic print content -->
-                </div>
+                <div id="printable-content" class="space-y-6 text-xs"></div>
 
                 <div class="mt-8 pt-4 border-t text-xs text-gray-500 flex justify-between items-end">
                     <div>
@@ -713,49 +726,72 @@
 
     <!-- Application Engine JavaScript -->
     <script>
-        // Google Apps Script Web App URL
         const GAS_URL = "https://script.google.com/macros/s/AKfycbzdwp_fLG2_JKvm9VqPhIvo3jro1BwqITzOKneSqAGDzZri9CLCsW3Lacy7B1tCzCd1OQ/exec";
 
-        // Global State
+        // Global State & Client Caching
         let appData = {};
-        let currentUser = null; // { role: 'admin'|'user', username: '', name: '', idCard: '' }
-        let currentTargetPersonId = null; // The ID card of person currently viewed in Tab Personal
+        let currentUser = null;
+        let currentTargetPersonId = null;
         let chartInstances = {};
         let selectedSettingsPhoto = null;
         let selectedSettingsPhotoMeta = {};
 
-        // Active editing states
-        let activeEditSheet = null;
-        let activeMultiRowData = [];
-        let activeMultiRowHeaders = [];
+        // Inline edit state
+        let isInlineEditMode = false;
+        let dynamicTableRows = { '2': [], '3': [], '5': [], '6': [] };
+
+        const CLIENT_CACHE_KEY = 'mk_sheet_cache_v2';
+        const CLIENT_CACHE_TIME_KEY = 'mk_sheet_cache_time';
+        const CLIENT_CACHE_TTL_MS = 5 * 60 * 1000; // 5 นาที สำหรับเบราว์เซอร์
 
         window.onload = async () => {
             const dateInput = document.getElementById('target-date');
             if (dateInput) dateInput.valueAsDate = new Date();
 
-            // Check session storage for existing login
             const savedSession = sessionStorage.getItem('mk_session');
             if (savedSession) {
-                try {
-                    currentUser = JSON.parse(savedSession);
-                } catch(e) {}
+                try { currentUser = JSON.parse(savedSession); } catch(e) {}
             }
 
             await fetchSheetData();
             updateUIAfterAuth();
         };
 
-        // --- Fetch Sheets & Config ---
-        async function fetchSheetData(isManual = false) {
+        // --- Fast Data Fetching with Browser & Script Cache ---
+        async function fetchSheetData(forceRefresh = false) {
             const loader = document.getElementById('loader');
             const refreshIcon = document.getElementById('refresh-icon');
-            if (isManual && refreshIcon) refreshIcon.classList.add('fa-spin');
+            if (forceRefresh && refreshIcon) refreshIcon.classList.add('fa-spin');
 
+            // 1. Check browser cache if not forcing refresh
+            if (!forceRefresh) {
+                const cachedTime = sessionStorage.getItem(CLIENT_CACHE_TIME_KEY);
+                const cachedDataStr = sessionStorage.getItem(CLIENT_CACHE_KEY);
+                if (cachedTime && cachedDataStr && (Date.now() - parseInt(cachedTime, 10) < CLIENT_CACHE_TTL_MS)) {
+                    try {
+                        appData = JSON.parse(cachedDataStr);
+                        if (loader) loader.style.display = 'none';
+                        renderDashboard();
+                        renderPersonnelGrid();
+                        populateFilters();
+                        populatePersonPickers();
+                        if (currentUser) { renderPersonalInfo(); calculateAllTimes(); }
+                        return;
+                    } catch(e) {}
+                }
+            }
+
+            // 2. Fetch from GAS API
             try {
-                const response = await fetch(GAS_URL);
+                const url = forceRefresh ? `${GAS_URL}?refresh=true` : GAS_URL;
+                const response = await fetch(url);
                 if (!response.ok) throw new Error("Network error fetching API");
                 const res = await response.json();
                 appData = res.data ? res.data : res;
+
+                // Save to browser session storage
+                sessionStorage.setItem(CLIENT_CACHE_KEY, JSON.stringify(appData));
+                sessionStorage.setItem(CLIENT_CACHE_TIME_KEY, String(Date.now()));
 
                 if (loader) loader.style.display = 'none';
                 if (refreshIcon) refreshIcon.classList.remove('fa-spin');
@@ -770,8 +806,8 @@
                     calculateAllTimes();
                 }
 
-                if (isManual) {
-                    Swal.fire({ icon: 'success', title: 'อัปเดตข้อมูลล่าสุดแล้ว', timer: 1200, showConfirmButton: false });
+                if (forceRefresh) {
+                    Swal.fire({ icon: 'success', title: 'อัปเดตข้อมูลสดเรียบร้อยแล้ว', timer: 1000, showConfirmButton: false });
                 }
             } catch (error) {
                 console.error("Error fetching data:", error);
@@ -788,7 +824,45 @@
             }
         }
 
-        // --- Navigation & UI State ---
+        // --- Client-side Image Compression (Canvas-based) ---
+        function compressImage(file, maxWidth = 800, maxHeight = 1000, quality = 0.82) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = event => {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onload = () => {
+                        let width = img.width;
+                        let height = img.height;
+                        if (width > maxWidth || height > maxHeight) {
+                            if (width / height > maxWidth / maxHeight) {
+                                height = Math.round((height * maxWidth) / width);
+                                width = maxWidth;
+                            } else {
+                                width = Math.round((width * maxHeight) / height);
+                                height = maxHeight;
+                            }
+                        }
+                        const canvas = document.createElement('canvas');
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
+                        resolve({
+                            base64: compressedBase64,
+                            fileName: file.name.replace(/\.[^/.]+$/, "") + ".jpg",
+                            mimeType: 'image/jpeg'
+                        });
+                    };
+                    img.onerror = error => reject(error);
+                };
+                reader.onerror = error => reject(error);
+            });
+        }
+
+        // --- Navigation ---
         function switchTab(tabId) {
             const tabs = ['tab1', 'tab-login', 'tab-personnel', 'tab-personal', 'tab-time', 'tab-settings'];
             const btnIds = ['btn-tab1', 'btn-tab-login', 'btn-tab-personnel', 'btn-tab-personal', 'btn-tab-time', 'btn-tab-settings'];
@@ -823,7 +897,6 @@
             const adminPicker = document.getElementById('admin-person-picker');
 
             if (currentUser) {
-                // Logged In
                 if (btnLogin) btnLogin.classList.add('hidden');
                 protectedBtns.forEach(id => {
                     const btn = document.getElementById(id);
@@ -838,7 +911,6 @@
                 document.getElementById('header-role').innerText = roleLabel;
                 document.getElementById('header-role').className = currentUser.role === 'admin' ? 'bg-amber-500 text-gray-900 text-[10px] font-bold px-1.5 py-0.5 rounded' : 'bg-red-700 text-white text-[10px] px-1.5 py-0.5 rounded';
 
-                // Set target person
                 if (currentUser.role === 'admin') {
                     if (btnAddPerson) btnAddPerson.classList.remove('hidden');
                     if (btnExportText) btnExportText.innerText = 'ส่งออก Excel ทั้งหมด';
@@ -853,10 +925,8 @@
                     currentTargetPersonId = currentUser.idCard;
                 }
 
-                // Update avatar
                 updateHeaderAvatar();
             } else {
-                // Logged Out
                 if (btnLogin) btnLogin.classList.remove('hidden');
                 protectedBtns.forEach(id => {
                     const btn = document.getElementById(id);
@@ -881,13 +951,12 @@
                     avatar = row['รูปถ่าย'] || row['URL รูปถ่าย'];
                 }
             } else {
-                avatar = 'https://cdn-icons-png.flaticon.com/512/2942/2942813.png'; // Admin icon
+                avatar = 'https://cdn-icons-png.flaticon.com/512/2942/2942813.png';
             }
             const img = document.getElementById('header-avatar');
             if (img) img.src = avatar;
         }
 
-        // --- Authentication Action ---
         async function submitLogin() {
             const u = document.getElementById('login-username').value.trim();
             const p = document.getElementById('login-password').value.trim();
@@ -897,11 +966,7 @@
                 return;
             }
 
-            Swal.fire({
-                title: 'กำลังตรวจสอบข้อมูล...',
-                allowOutsideClick: false,
-                didOpen: () => { Swal.showLoading(); }
-            });
+            Swal.fire({ title: 'กำลังตรวจสอบข้อมูล...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
             try {
                 const res = await fetch(GAS_URL, {
@@ -919,11 +984,10 @@
                         icon: 'success',
                         title: 'เข้าสู่ระบบสำเร็จ',
                         text: `ยินดีต้อนรับ ${currentUser.name}`,
-                        timer: 1500,
+                        timer: 1200,
                         showConfirmButton: false
                     });
 
-                    // Redirect based on role
                     if (currentUser.role === 'admin') {
                         switchTab('tab-personnel');
                     } else {
@@ -952,8 +1016,9 @@
                     sessionStorage.removeItem('mk_session');
                     currentUser = null;
                     currentTargetPersonId = null;
+                    isInlineEditMode = false;
                     updateUIAfterAuth();
-                    Swal.fire({ icon: 'info', title: 'ออกจากระบบเรียบร้อยแล้ว', timer: 1200, showConfirmButton: false });
+                    Swal.fire({ icon: 'info', title: 'ออกจากระบบเรียบร้อยแล้ว', timer: 1000, showConfirmButton: false });
                 }
             });
         }
@@ -1102,7 +1167,7 @@
             return counts;
         }
 
-        // --- Dashboard Visualizations (Tab 1) ---
+        // --- Dashboard Visualizations ---
         function renderDashboard() {
             const sheet1 = appData['1'] || [];
             const sheet2 = appData['2'] || [];
@@ -1124,7 +1189,6 @@
             createChart('chartEduLevel', 'doughnut', getFrequencies(sheet2, 'ระดับการศึกษา'), 'ระดับการศึกษา', pieColors);
             createChart('chartEducation', 'bar', getFrequencies(sheet2, 'วุฒิการศึกษาสูงสุด', r => !r['วุฒิการศึกษาสูงสุด'] || r['วุฒิการศึกษาสูงสุด'].trim() === ''), 'จำนวน', pieColors);
 
-            // Majors
             let majorCounts = {};
             let personMajors = {}; 
             sheet2.forEach(row => {
@@ -1192,7 +1256,6 @@
                 const pos = s4['ตำแหน่ง'] || 'ไม่ระบุ';
                 const academic = s4['วิทยฐานะ'] || '-';
 
-                // Check permission
                 const isSelf = currentUser && currentUser.role === 'user' && (String(currentUser.idCard).replace(/\D/g, '') === String(idCard).replace(/\D/g, ''));
                 const isAdmin = currentUser && currentUser.role === 'admin';
 
@@ -1207,9 +1270,7 @@
                         </button>
                     `;
                 } else {
-                    actionButtons = `
-                        <span class="text-gray-400 text-[11px] italic"><i class="fas fa-lock mr-1"></i>ดูข้อมูลลึกเฉพาะตนเอง</span>
-                    `;
+                    actionButtons = `<span class="text-gray-400 text-[11px] italic"><i class="fas fa-lock mr-1"></i>ดูข้อมูลลึกเฉพาะตนเอง</span>`;
                 }
 
                 html += `
@@ -1303,9 +1364,7 @@
                         </button>
                     `;
                 } else {
-                    actionButtons = `
-                        <span class="text-gray-400 text-[11px] italic"><i class="fas fa-lock mr-1"></i>ดูข้อมูลลึกเฉพาะตนเอง</span>
-                    `;
+                    actionButtons = `<span class="text-gray-400 text-[11px] italic"><i class="fas fa-lock mr-1"></i>ดูข้อมูลลึกเฉพาะตนเอง</span>`;
                 }
 
                 html += `
@@ -1361,7 +1420,6 @@
             const wb = XLSX.utils.book_new();
 
             if (currentUser.role === 'admin') {
-                // Export everything
                 ['1', '2', '3', '4', '5', '6'].forEach(name => {
                     const sheetData = appData[name] || [];
                     if (sheetData.length > 0) {
@@ -1370,14 +1428,12 @@
                     }
                 });
                 XLSX.writeFile(wb, `ทะเบียนประวัติบุคลากรทั้งหมด_รร.วัดแม่กะ_${new Date().toISOString().slice(0,10)}.xlsx`);
-                Swal.fire({ icon: 'success', title: 'ส่งออกข้อมูลบุคลากรทั้งหมดเรียบร้อยแล้ว', timer: 1500, showConfirmButton: false });
+                Swal.fire({ icon: 'success', title: 'ส่งออกข้อมูลบุคลากรทั้งหมดเรียบร้อยแล้ว', timer: 1200, showConfirmButton: false });
             } else {
-                // Export only current user
                 const sheet1 = appData['1'] || [];
                 const userRow = sheet1.find(r => String(r['เลขบัตรประชาชน']).replace(/\D/g, '') === String(currentUser.idCard).replace(/\D/g, ''));
                 if (!userRow) return;
                 const myName = String(userRow['ชื่อ-สกุล']).replace(/\s+/g, ' ').trim();
-
                 const filterMyData = (data) => (data || []).filter(r => String(r['ชื่อ-สกุล']).replace(/\s+/g, ' ').trim() === myName);
 
                 XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([userRow]), 'ข้อมูลพื้นฐาน');
@@ -1388,11 +1444,11 @@
                 XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(filterMyData(appData['6'])), 'เครื่องราชฯ');
 
                 XLSX.writeFile(wb, `ทะเบียนประวัติ_${myName}_${new Date().toISOString().slice(0,10)}.xlsx`);
-                Swal.fire({ icon: 'success', title: 'ส่งออกประวัติตนเองเรียบร้อยแล้ว', timer: 1500, showConfirmButton: false });
+                Swal.fire({ icon: 'success', title: 'ส่งออกประวัติตนเองเรียบร้อยแล้ว', timer: 1200, showConfirmButton: false });
             }
         }
 
-        // --- Personal Info Detailed Render (Tab Personal - Sheets 1 to 6) ---
+        // --- Data Aggregator for Selected Person ---
         function getTargetPersonData() {
             const sheet1 = appData['1'] || [];
             let targetId = currentTargetPersonId;
@@ -1417,6 +1473,42 @@
             };
         }
 
+        // --- Toggle Inline Edit Mode ---
+        function toggleInlineEditMode() {
+            isInlineEditMode = !isInlineEditMode;
+            const btn = document.getElementById('btn-toggle-inline-edit');
+            const label = document.getElementById('label-toggle-inline-edit');
+            const indicator = document.getElementById('inline-edit-indicator');
+
+            // Action save/add buttons
+            const actionBtnIds = [
+                'btn-save-sec1', 'btn-add-sec2', 'btn-save-sec2',
+                'btn-add-sec3', 'btn-save-sec3', 'btn-save-sec4',
+                'btn-add-sec5', 'btn-save-sec5', 'btn-add-sec6', 'btn-save-sec6'
+            ];
+
+            if (isInlineEditMode) {
+                btn.className = "bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs px-3.5 py-2 rounded-lg shadow-sm border border-amber-600 flex items-center gap-2 transition";
+                label.innerText = "ปิดโหมดแก้ไขข้อมูล (View Mode)";
+                if (indicator) indicator.classList.remove('hidden');
+                actionBtnIds.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.classList.remove('hidden');
+                });
+            } else {
+                btn.className = "bg-white hover:bg-slate-100 text-mkred-800 font-extrabold text-xs px-3.5 py-2 rounded-lg shadow-sm border border-amber-300 flex items-center gap-2 transition";
+                label.innerText = "เปิดโหมดแก้ไขข้อมูล (Inline Edit)";
+                if (indicator) indicator.classList.add('hidden');
+                actionBtnIds.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.classList.add('hidden');
+                });
+            }
+
+            renderPersonalInfo();
+        }
+
+        // --- Render Personal Info with Direct Inline Editing ---
         function renderPersonalInfo() {
             const data = getTargetPersonData();
             if (!data.fullName) return;
@@ -1427,329 +1519,268 @@
             const avatar = data.s1['รูปถ่าย'] || data.s1['URL รูปถ่าย'] || 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
             document.getElementById('personal-top-avatar').src = avatar;
 
-            // 1. Render Sheet 1 (ข้อมูลพื้นฐาน)
-            const sec1 = document.getElementById('sec1-content');
-            sec1.innerHTML = `
-                <div><span class="font-bold text-gray-500">ชื่อ-สกุล:</span> ${data.s1['ชื่อ-สกุล'] || '-'}</div>
-                <div><span class="font-bold text-gray-500">เลขบัตรประชาชน:</span> ${data.s1['เลขบัตรประชาชน'] || '-'}</div>
-                <div><span class="font-bold text-gray-500">วันเกิด:</span> ${formatThaiDate(data.s1['วันเดือนปีเกิด'])}</div>
-                <div><span class="font-bold text-gray-500">เพศ:</span> ${data.s1['เพศ'] || '-'}</div>
-                <div><span class="font-bold text-gray-500">ศาสนา:</span> ${data.s1['ศาสนา'] || '-'}</div>
-                <div><span class="font-bold text-gray-500">หมู่เลือด:</span> ${data.s1['หมู่เลือด'] || '-'}</div>
-                <div><span class="font-bold text-gray-500">เบอร์โทรศัพท์:</span> ${data.s1['เบอร์โทรศัพท์'] || '-'}</div>
-                <div><span class="font-bold text-gray-500">E-mail:</span> ${data.s1['E-mail'] || '-'}</div>
-                <div><span class="font-bold text-gray-500">วันเข้าบรรจุ:</span> ${formatThaiDate(data.s1['วันเข้าบรรจุ'])}</div>
-                <div><span class="font-bold text-gray-500">วันเกษียณอายุ:</span> ${formatThaiDate(data.s1['วันเกษียณอายุ'])}</div>
-            `;
+            // Initialize clone of table rows for inline editing
+            dynamicTableRows['2'] = JSON.parse(JSON.stringify(data.s2));
+            dynamicTableRows['3'] = JSON.parse(JSON.stringify(data.s3));
+            dynamicTableRows['5'] = JSON.parse(JSON.stringify(data.s5));
+            dynamicTableRows['6'] = JSON.parse(JSON.stringify(data.s6));
 
-            // 2. Render Sheet 2 (ประวัติการศึกษา)
-            const sec2 = document.getElementById('sec2-content');
-            if (data.s2.length > 0) {
-                sec2.innerHTML = `
-                    <table class="w-full text-xs text-left border border-gray-200 rounded-lg overflow-hidden">
-                        <thead class="bg-slate-100 text-gray-700 font-bold">
-                            <tr>
-                                <th class="p-2 border-b">ระดับการศึกษา</th>
-                                <th class="p-2 border-b">วุฒิการศึกษา</th>
-                                <th class="p-2 border-b">สาขาวิชาเอก</th>
-                                <th class="p-2 border-b">วุฒิการศึกษาสูงสุด</th>
-                                <th class="p-2 border-b">กลุ่มวิชาเอก</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${data.s2.map(e => `
-                                <tr class="hover:bg-slate-50 border-b">
-                                    <td class="p-2">${e['ระดับการศึกษา'] || '-'}</td>
-                                    <td class="p-2">${e['วุฒิการศึกษา'] || '-'}</td>
-                                    <td class="p-2">${e['สาขาวิชาเอก'] || '-'}</td>
-                                    <td class="p-2">${e['วุฒิการศึกษาสูงสุด'] || '-'}</td>
-                                    <td class="p-2">${e['กลุ่มวิชาเอก'] || '-'}</td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                `;
-            } else {
-                sec2.innerHTML = '<p class="text-xs text-gray-400 italic">ไม่มีข้อมูลการศึกษา</p>';
-            }
+            // 1. หมวดที่ 1 (Sheet 1) ข้อมูลพื้นฐาน
+            renderInlineSection1(data.s1);
 
-            // 3. Render Sheet 3 (ใบอนุญาต)
-            const sec3 = document.getElementById('sec3-content');
-            if (data.s3.length > 0) {
-                sec3.innerHTML = `
-                    <table class="w-full text-xs text-left border border-gray-200 rounded-lg overflow-hidden">
-                        <thead class="bg-slate-100 text-gray-700 font-bold">
-                            <tr>
-                                <th class="p-2 border-b">ประเภทใบอนุญาต</th>
-                                <th class="p-2 border-b">เลขที่ใบอนุญาต</th>
-                                <th class="p-2 border-b">วันหมดอายุ</th>
-                                <th class="p-2 border-b">สถานะ</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${data.s3.map(lic => {
-                                const exp = parseDate(lic['วันเดือนปีที่หมดอายุ']);
-                                let badge = '<span class="bg-green-100 text-green-800 px-2 py-0.5 rounded text-[10px]">ปกติ</span>';
-                                if (exp) {
-                                    const diffDays = Math.ceil((exp - new Date()) / (1000 * 60 * 60 * 24));
-                                    if (diffDays <= 0) badge = '<span class="bg-red-100 text-red-800 px-2 py-0.5 rounded text-[10px] font-bold">หมดอายุแล้ว</span>';
-                                    else if (diffDays <= 90) badge = '<span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded text-[10px] font-bold">ใกล้หมดอายุ (ภายใน 3 เดือน)</span>';
-                                    else if (diffDays <= 180) badge = '<span class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-[10px]">ใกล้หมดอายุ (ภายใน 6 เดือน)</span>';
-                                }
-                                return `
-                                    <tr class="hover:bg-slate-50 border-b">
-                                        <td class="p-2 font-semibold">${lic['ประเภทใบอนุญาต'] || '-'}</td>
-                                        <td class="p-2">${lic['เลขที่ใบอนุญาต'] || '-'}</td>
-                                        <td class="p-2">${formatThaiDate(lic['วันเดือนปีที่หมดอายุ'])}</td>
-                                        <td class="p-2">${badge}</td>
-                                    </tr>
-                                `;
-                            }).join('')}
-                        </tbody>
-                    </table>
-                `;
-            } else {
-                sec3.innerHTML = '<p class="text-xs text-gray-400 italic">ไม่มีข้อมูลใบอนุญาตประกอบวิชาชีพ</p>';
-            }
+            // 2. หมวดที่ 2 (Sheet 2) การศึกษา
+            renderInlineTableSection('2');
 
-            // 4. Render Sheet 4 (การทำงานและตำแหน่ง)
-            const sec4 = document.getElementById('sec4-content');
-            sec4.innerHTML = `
-                <div><span class="font-bold text-gray-500">ตำแหน่ง:</span> ${data.s4['ตำแหน่ง'] || '-'}</div>
-                <div><span class="font-bold text-gray-500">วิทยฐานะ:</span> ${data.s4['วิทยฐานะ'] || '-'}</div>
-                <div><span class="font-bold text-gray-500">ประเภทบุคลากร:</span> ${data.s4['ประเภทบุคลากร'] || '-'}</div>
-                <div><span class="font-bold text-gray-500">เลขที่ตำแหน่ง:</span> ${data.s4['เลขที่ตำแหน่ง'] || '-'}</div>
-                <div><span class="font-bold text-gray-500">เงินเดือน:</span> ${data.s4['เงินเดือน'] ? Number(data.s4['เงินเดือน']).toLocaleString() + ' บาท' : '-'}</div>
-                <div><span class="font-bold text-gray-500">วันที่บรรจุ:</span> ${formatThaiDate(data.s4['วันที่บรรจุ'])}</div>
-                <div><span class="font-bold text-gray-500">วันที่เริ่มปฏิบัติราชการ:</span> ${formatThaiDate(data.s4['วันที่เริ่มปฏิบัติราชการ'])}</div>
-                <div><span class="font-bold text-gray-500">วันที่เข้าหน่วยงานปัจจุบัน:</span> ${formatThaiDate(data.s4['วันที่เข้าหน่วยงานปัจจุบัน'])}</div>
-                <div><span class="font-bold text-gray-500">วันที่ดำรงตำแหน่งวิทยฐานะ:</span> ${formatThaiDate(data.s4['วันที่ดำรงตำแหน่งวิทยฐานะ'])}</div>
-            `;
+            // 3. หมวดที่ 3 (Sheet 3) ใบอนุญาต
+            renderInlineTableSection('3');
 
-            // 5. Render Sheet 5 (วิทยฐานะ)
-            const sec5 = document.getElementById('sec5-content');
-            if (data.s5.length > 0) {
-                const sampleHeaders = Object.keys(data.s5[0]).filter(k => k !== 'ชื่อ-สกุล');
-                sec5.innerHTML = `
-                    <table class="w-full text-xs text-left border border-gray-200 rounded-lg overflow-hidden">
-                        <thead class="bg-slate-100 text-gray-700 font-bold">
-                            <tr>
-                                ${sampleHeaders.map(h => `<th class="p-2 border-b">${h}</th>`).join('')}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${data.s5.map(row => `
-                                <tr class="hover:bg-slate-50 border-b">
-                                    ${sampleHeaders.map(h => `<td class="p-2">${row[h] || '-'}</td>`).join('')}
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                `;
-            } else {
-                sec5.innerHTML = '<p class="text-xs text-gray-400 italic">ไม่มีข้อมูลประวัติวิทยฐานะ</p>';
-            }
+            // 4. หมวดที่ 4 (Sheet 4) ตำแหน่งและการทำงาน
+            renderInlineSection4(data.s4);
 
-            // 6. Render Sheet 6 (เครื่องราชฯ)
-            const sec6 = document.getElementById('sec6-content');
-            if (data.s6.length > 0) {
-                sec6.innerHTML = `
-                    <table class="w-full text-xs text-left border border-gray-200 rounded-lg overflow-hidden">
-                        <thead class="bg-slate-100 text-gray-700 font-bold">
-                            <tr>
-                                <th class="p-2 border-b">ชั้นตรา</th>
-                                <th class="p-2 border-b">ประจำปี พ.ศ.</th>
-                                <th class="p-2 border-b">วันที่ประกาศในราชกิจจาฯ</th>
-                                <th class="p-2 border-b">เล่ม/ตอน/หน้า</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${data.s6.map(d => `
-                                <tr class="hover:bg-slate-50 border-b">
-                                    <td class="p-2 font-semibold text-mkred-800">${d['ชั้นตรา'] || '-'}</td>
-                                    <td class="p-2">${d['ประจำปี'] || '-'}</td>
-                                    <td class="p-2">${formatThaiDate(d['วันที่ประกาศในราชกิจจา'])}</td>
-                                    <td class="p-2">${d['เล่ม/ตอน/หน้า'] || d['เล่ม'] || '-'}</td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                `;
-            } else {
-                sec6.innerHTML = '<p class="text-xs text-gray-400 italic">ไม่มีข้อมูลเครื่องราชอิสริยาภรณ์</p>';
-            }
+            // 5. หมวดที่ 5 (Sheet 5) วิทยฐานะ
+            renderInlineTableSection('5');
+
+            // 6. หมวดที่ 6 (Sheet 6) เครื่องราชฯ
+            renderInlineTableSection('6');
         }
 
-        // --- Editing Single Section Modals (Sheet 1 & 4) ---
-        function openEditSectionModal(sheetName) {
-            activeEditSheet = sheetName;
-            const data = getTargetPersonData();
-            const modal = document.getElementById('modal-edit-section');
-            const title = document.getElementById('section-modal-title');
-            const fieldsContainer = document.getElementById('section-form-fields');
-
-            let sourceObj = sheetName === '1' ? data.s1 : data.s4;
-            title.innerText = sheetName === '1' ? 'แก้ไขข้อมูลส่วนบุคคลพื้นฐาน (Sheet 1)' : 'แก้ไขข้อมูลตำแหน่งและการทำงาน (Sheet 4)';
-
-            // Fetch headers from sheet or sourceObj
-            let headers = [];
-            if (appData[sheetName] && appData[sheetName].length > 0) {
-                headers = Object.keys(appData[sheetName][0]).filter(k => k !== 'password' && k !== 'รหัสผ่าน');
-            } else {
-                headers = Object.keys(sourceObj);
-            }
-
-            let fieldsHtml = '';
-            headers.forEach(h => {
-                const val = sourceObj[h] || '';
-                const readonlyAttr = (h === 'เลขบัตรประชาชน' && sheetName === '1') || (h === 'ชื่อ-สกุล') ? 'readonly class="w-full px-3 py-2 border bg-gray-100 rounded-lg text-xs"' : 'class="w-full px-3 py-2 border rounded-lg text-xs"';
-                fieldsHtml += `
-                    <div>
-                        <label class="block font-bold text-gray-700 mb-1">${h}</label>
-                        <input type="text" name="${h}" value="${val}" ${readonlyAttr}>
-                    </div>
-                `;
-            });
-
-            fieldsContainer.innerHTML = fieldsHtml;
-            modal.classList.remove('hidden');
-        }
-
-        async function submitSectionForm() {
-            const data = getTargetPersonData();
-            const container = document.getElementById('section-form-fields');
-            const inputs = container.querySelectorAll('input');
-            let payloadData = {};
-            inputs.forEach(inp => {
-                payloadData[inp.name] = inp.value.trim();
-            });
-
-            Swal.fire({ title: 'กำลังบันทึกข้อมูล...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-
-            try {
-                const res = await fetch(GAS_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        action: 'savePersonSection',
-                        sheetName: activeEditSheet,
-                        idCard: data.idCard,
-                        fullName: data.fullName,
-                        data: payloadData
-                    })
-                });
-                const result = await res.json();
-                closeModal('modal-edit-section');
-                await fetchSheetData();
-                Swal.fire({ icon: 'success', title: 'บันทึกข้อมูลสำเร็จ', timer: 1200, showConfirmButton: false });
-            } catch (err) {
-                console.error(err);
-                Swal.fire({ icon: 'error', title: 'บันทึกไม่สำเร็จ', text: err.toString() });
-            }
-        }
-
-        // --- Editing Multi-Row Sections (Sheet 2, 3, 5, 6) ---
-        function openEditMultiRowModal(sheetName) {
-            activeEditSheet = sheetName;
-            const data = getTargetPersonData();
-            const modal = document.getElementById('modal-edit-multirow');
-            const title = document.getElementById('multirow-modal-title');
-
-            const titlesMap = {
-                '2': 'จัดการประวัติการศึกษา (Sheet 2)',
-                '3': 'จัดการใบอนุญาตประกอบวิชาชีพ (Sheet 3)',
-                '5': 'จัดการประวัติวิทยฐานะ (Sheet 5)',
-                '6': 'จัดการเครื่องราชอิสริยาภรณ์ (Sheet 6)'
-            };
-            title.innerText = titlesMap[sheetName] || 'จัดการข้อมูล';
-
-            // Find headers
-            let headers = [];
-            if (appData[sheetName] && appData[sheetName].length > 0) {
-                headers = Object.keys(appData[sheetName][0]).filter(k => k !== 'ชื่อ-สกุล');
-            } else {
-                if (sheetName === '2') headers = ['ระดับการศึกษา', 'วุฒิการศึกษา', 'สาขาวิชาเอก', 'วุฒิการศึกษาสูงสุด', 'กลุ่มวิชาเอก'];
-                if (sheetName === '3') headers = ['ประเภทใบอนุญาต', 'เลขที่ใบอนุญาต', 'วันเดือนปีที่หมดอายุ'];
-                if (sheetName === '5') headers = ['วิทยฐานะ', 'สาขาวิชา', 'วันที่คำสั่งมีผล'];
-                if (sheetName === '6') headers = ['ชั้นตรา', 'ประจำปี', 'วันที่ประกาศในราชกิจจา', 'เล่ม/ตอน/หน้า'];
-            }
-
-            activeMultiRowHeaders = headers;
-            const currentRows = data['s' + sheetName] || [];
-            activeMultiRowData = JSON.parse(JSON.stringify(currentRows));
-
-            renderMultiRowInputs();
-            modal.classList.remove('hidden');
-        }
-
-        function renderMultiRowInputs() {
-            const container = document.getElementById('multirow-rows-container');
-            if (activeMultiRowData.length === 0) {
-                container.innerHTML = '<p class="text-center py-6 text-gray-400 text-xs italic">ยังไม่มีรายการข้อมูล กดปุ่ม "เพิ่มรายการใหม่" ด้านบนเพื่อเริ่มกรอก</p>';
-                return;
-            }
+        function renderInlineSection1(s1) {
+            const container = document.getElementById('sec1-content');
+            const fields = [
+                { key: 'ชื่อ-สกุล', label: 'ชื่อ-สกุล', readonly: true },
+                { key: 'เลขบัตรประชาชน', label: 'เลขบัตรประชาชน', readonly: true },
+                { key: 'วันเดือนปีเกิด', label: 'วันเกิด', type: 'text' },
+                { key: 'เพศ', label: 'เพศ', select: ['ชาย', 'หญิง'] },
+                { key: 'ศาสนา', label: 'ศาสนา', type: 'text' },
+                { key: 'หมู่เลือด', label: 'หมู่เลือด', type: 'text' },
+                { key: 'เบอร์โทรศัพท์', label: 'เบอร์โทรศัพท์', type: 'text' },
+                { key: 'E-mail', label: 'อีเมล (E-mail)', type: 'email' },
+                { key: 'วันเข้าบรรจุ', label: 'วันเข้าบรรจุ', type: 'text' },
+                { key: 'วันเกษียณอายุ', label: 'วันเกษียณอายุ', type: 'text' }
+            ];
 
             let html = '';
-            activeMultiRowData.forEach((row, idx) => {
-                html += `
-                    <div class="bg-slate-50 p-3 rounded-xl border border-gray-200 relative">
-                        <div class="flex justify-between items-center mb-2">
-                            <span class="bg-mkred-100 text-mkred-800 text-[10px] font-bold px-2 py-0.5 rounded">รายการที่ ${idx + 1}</span>
-                            <button type="button" onclick="removeMultiRowEntry(${idx})" class="text-red-500 hover:text-red-700 text-xs font-bold flex items-center gap-1">
-                                <i class="fas fa-trash-alt"></i> ลบรายการนี้
-                            </button>
+            fields.forEach(f => {
+                const val = s1[f.key] || '';
+                if (!isInlineEditMode) {
+                    html += `
+                        <div class="bg-slate-50/50 p-2 rounded-lg border border-gray-100">
+                            <span class="font-bold text-gray-500 block text-[11px]">${f.label}:</span>
+                            <span class="text-gray-900 font-medium">${val || '-'}</span>
                         </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 text-xs">
-                            ${activeMultiRowHeaders.map(h => `
-                                <div>
-                                    <label class="block font-semibold text-gray-600 mb-0.5 text-[11px]">${h}</label>
-                                    <input type="text" onchange="activeMultiRowData[${idx}]['${h}'] = this.value" value="${row[h] || ''}" class="w-full px-2.5 py-1.5 border rounded-lg text-xs">
-                                </div>
-                            `).join('')}
+                    `;
+                } else {
+                    let inputEl = '';
+                    if (f.readonly) {
+                        inputEl = `<input type="text" id="inline_s1_${f.key}" value="${val}" readonly class="inline-input bg-gray-100 cursor-not-allowed">`;
+                    } else if (f.select) {
+                        inputEl = `
+                            <select id="inline_s1_${f.key}" class="inline-input">
+                                ${f.select.map(opt => `<option value="${opt}" ${val === opt ? 'selected' : ''}>${opt}</option>`).join('')}
+                            </select>
+                        `;
+                    } else {
+                        inputEl = `<input type="${f.type || 'text'}" id="inline_s1_${f.key}" value="${val}" class="inline-input">`;
+                    }
+
+                    html += `
+                        <div>
+                            <label class="block font-bold text-gray-700 mb-1 text-[11px]">${f.label}:</label>
+                            ${inputEl}
                         </div>
-                    </div>
-                `;
+                    `;
+                }
             });
             container.innerHTML = html;
         }
 
-        function addMultiRowEntry() {
-            let newObj = {};
-            activeMultiRowHeaders.forEach(h => newObj[h] = '');
-            activeMultiRowData.push(newObj);
-            renderMultiRowInputs();
+        function renderInlineSection4(s4) {
+            const container = document.getElementById('sec4-content');
+            const fields = [
+                { key: 'ตำแหน่ง', label: 'ตำแหน่ง' },
+                { key: 'วิทยฐานะ', label: 'วิทยฐานะ' },
+                { key: 'ประเภทบุคลากร', label: 'ประเภทบุคลากร' },
+                { key: 'เลขที่ตำแหน่ง', label: 'เลขที่ตำแหน่ง' },
+                { key: 'เงินเดือน', label: 'เงินเดือน (บาท)', type: 'number' },
+                { key: 'วันที่บรรจุ', label: 'วันที่บรรจุ' },
+                { key: 'วันที่เริ่มปฏิบัติราชการ', label: 'วันที่เริ่มปฏิบัติราชการ' },
+                { key: 'วันที่เข้าหน่วยงานปัจจุบัน', label: 'วันที่เข้าหน่วยงานปัจจุบัน' },
+                { key: 'วันที่ดำรงตำแหน่งวิทยฐานะ', label: 'วันที่ดำรงตำแหน่งวิทยฐานะ' }
+            ];
+
+            let html = '';
+            fields.forEach(f => {
+                const val = s4[f.key] || '';
+                if (!isInlineEditMode) {
+                    html += `
+                        <div class="bg-slate-50/50 p-2 rounded-lg border border-gray-100">
+                            <span class="font-bold text-gray-500 block text-[11px]">${f.label}:</span>
+                            <span class="text-gray-900 font-medium">${f.key === 'เงินเดือน' && val ? Number(val).toLocaleString() + ' บาท' : (val || '-')}</span>
+                        </div>
+                    `;
+                } else {
+                    html += `
+                        <div>
+                            <label class="block font-bold text-gray-700 mb-1 text-[11px]">${f.label}:</label>
+                            <input type="${f.type || 'text'}" id="inline_s4_${f.key}" value="${val}" class="inline-input">
+                        </div>
+                    `;
+                }
+            });
+            container.innerHTML = html;
         }
 
-        function removeMultiRowEntry(idx) {
-            activeMultiRowData.splice(idx, 1);
-            renderMultiRowInputs();
+        // --- Render Multi-Row Tables with Inline Cells (Sheet 2, 3, 5, 6) ---
+        function getSheetHeaders(sheetNum) {
+            if (sheetNum === '2') return ['ระดับการศึกษา', 'วุฒิการศึกษา', 'สาขาวิชาเอก', 'วุฒิการศึกษาสูงสุด', 'กลุ่มวิชาเอก'];
+            if (sheetNum === '3') return ['ประเภทใบอนุญาต', 'เลขที่ใบอนุญาต', 'วันเดือนปีที่หมดอายุ'];
+            if (sheetNum === '5') return ['วิทยฐานะ', 'สาขาวิชา', 'วันที่คำสั่งมีผล'];
+            if (sheetNum === '6') return ['ชั้นตรา', 'ประจำปี', 'วันที่ประกาศในราชกิจจา', 'เล่ม/ตอน/หน้า'];
+            return [];
         }
 
-        async function submitMultiRowForm() {
+        function renderInlineTableSection(sheetNum) {
+            const container = document.getElementById(`sec${sheetNum}-content`);
+            const rows = dynamicTableRows[sheetNum] || [];
+            const headers = getSheetHeaders(sheetNum);
+
+            if (rows.length === 0 && !isInlineEditMode) {
+                container.innerHTML = `<p class="text-xs text-gray-400 italic py-2">ไม่มีข้อมูลในหมวดนี้</p>`;
+                return;
+            }
+
+            let html = `
+                <table class="w-full text-xs text-left border border-gray-200 rounded-lg overflow-hidden">
+                    <thead class="bg-slate-100 text-gray-700 font-bold">
+                        <tr>
+                            ${headers.map(h => `<th class="p-2 border-b whitespace-nowrap">${h}</th>`).join('')}
+                            ${isInlineEditMode ? '<th class="p-2 border-b text-center w-16">ลบ</th>' : (sheetNum === '3' ? '<th class="p-2 border-b">สถานะ</th>' : '')}
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            if (rows.length === 0 && isInlineEditMode) {
+                html += `<tr><td colspan="${headers.length + 1}" class="p-4 text-center text-gray-400 italic">ยังไม่มีแถวข้อมูล คลิกปุ่ม "+ เพิ่มแถว" ด้านบนเพื่อเริ่มกรอก</td></tr>`;
+            } else {
+                rows.forEach((row, rIdx) => {
+                    html += `<tr class="hover:bg-slate-50 border-b">`;
+                    headers.forEach(h => {
+                        const val = row[h] || '';
+                        if (!isInlineEditMode) {
+                            html += `<td class="p-2">${val || '-'}</td>`;
+                        } else {
+                            html += `<td class="p-1.5"><input type="text" onchange="dynamicTableRows['${sheetNum}'][${rIdx}]['${h}'] = this.value" value="${val}" class="inline-input"></td>`;
+                        }
+                    });
+
+                    if (isInlineEditMode) {
+                        html += `
+                            <td class="p-1.5 text-center">
+                                <button type="button" onclick="deleteInlineTableRow('${sheetNum}', ${rIdx})" class="text-red-500 hover:text-red-700 p-1 rounded" title="ลบแถวนี้">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </td>
+                        `;
+                    } else if (sheetNum === '3') {
+                        const exp = parseDate(row['วันเดือนปีที่หมดอายุ']);
+                        let badge = '<span class="bg-green-100 text-green-800 px-2 py-0.5 rounded text-[10px]">ปกติ</span>';
+                        if (exp) {
+                            const diffDays = Math.ceil((exp - new Date()) / (1000 * 60 * 60 * 24));
+                            if (diffDays <= 0) badge = '<span class="bg-red-100 text-red-800 px-2 py-0.5 rounded text-[10px] font-bold">หมดอายุแล้ว</span>';
+                            else if (diffDays <= 90) badge = '<span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded text-[10px] font-bold">ใกล้หมดอายุ (&lt;3 ด.)</span>';
+                            else if (diffDays <= 180) badge = '<span class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-[10px]">ใกล้หมดอายุ (&lt;6 ด.)</span>';
+                        }
+                        html += `<td class="p-2">${badge}</td>`;
+                    }
+
+                    html += `</tr>`;
+                });
+            }
+
+            html += `</tbody></table>`;
+            container.innerHTML = html;
+        }
+
+        function addInlineTableRow(sheetNum) {
+            const headers = getSheetHeaders(sheetNum);
+            let newRow = {};
+            headers.forEach(h => newRow[h] = '');
+            dynamicTableRows[sheetNum].push(newRow);
+            renderInlineTableSection(sheetNum);
+        }
+
+        function deleteInlineTableRow(sheetNum, rIdx) {
+            dynamicTableRows[sheetNum].splice(rIdx, 1);
+            renderInlineTableSection(sheetNum);
+        }
+
+        // --- Save Inline Sections Directly ---
+        async function saveInlineSection1() {
             const data = getTargetPersonData();
-            Swal.fire({ title: 'กำลังบันทึกข้อมูล...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            const fields = ['วันเดือนปีเกิด', 'เพศ', 'ศาสนา', 'หมู่เลือด', 'เบอร์โทรศัพท์', 'E-mail', 'วันเข้าบรรจุ', 'วันเกษียณอายุ'];
+            let payload = { 'เลขบัตรประชาชน': data.idCard, 'ชื่อ-สกุล': data.fullName };
+
+            fields.forEach(f => {
+                const el = document.getElementById(`inline_s1_${f}`);
+                if (el) payload[f] = el.value.trim();
+            });
+
+            await postSectionSave('1', data.idCard, data.fullName, payload);
+        }
+
+        async function saveInlineSection4() {
+            const data = getTargetPersonData();
+            const fields = ['ตำแหน่ง', 'วิทยฐานะ', 'ประเภทบุคลากร', 'เลขที่ตำแหน่ง', 'เงินเดือน', 'วันที่บรรจุ', 'วันที่เริ่มปฏิบัติราชการ', 'วันที่เข้าหน่วยงานปัจจุบัน', 'วันที่ดำรงตำแหน่งวิทยฐานะ'];
+            let payload = { 'ชื่อ-สกุล': data.fullName };
+
+            fields.forEach(f => {
+                const el = document.getElementById(`inline_s4_${f}`);
+                if (el) payload[f] = el.value.trim();
+            });
+
+            await postSectionSave('4', data.idCard, data.fullName, payload);
+        }
+
+        async function saveInlineTableSection(sheetNum) {
+            const data = getTargetPersonData();
+            const tableRows = dynamicTableRows[sheetNum] || [];
+            await postSectionSave(sheetNum, data.idCard, data.fullName, tableRows);
+        }
+
+        async function postSectionSave(sheetNum, idCard, fullName, payloadData) {
+            Swal.fire({
+                title: 'กำลังบันทึกข้อมูล...',
+                text: 'อัปเดตตรงไปยัง Google Sheet และล้างแคชระบบ',
+                allowOutsideClick: false,
+                didOpen: () => Swal.showLoading()
+            });
 
             try {
                 const res = await fetch(GAS_URL, {
                     method: 'POST',
                     body: JSON.stringify({
                         action: 'savePersonSection',
-                        sheetName: activeEditSheet,
-                        idCard: data.idCard,
-                        fullName: data.fullName,
-                        data: activeMultiRowData
+                        sheetName: sheetNum,
+                        idCard: idCard,
+                        fullName: fullName,
+                        data: payloadData
                     })
                 });
                 const result = await res.json();
-                closeModal('modal-edit-multirow');
-                await fetchSheetData();
-                Swal.fire({ icon: 'success', title: 'บันทึกข้อมูลเรียบร้อยแล้ว', timer: 1200, showConfirmButton: false });
+
+                // Invalidate browser cache & force refresh data
+                sessionStorage.removeItem(CLIENT_CACHE_KEY);
+                await fetchSheetData(true);
+
+                Swal.fire({ icon: 'success', title: `บันทึกหมวดที่ ${sheetNum} เรียบร้อยแล้ว`, timer: 1200, showConfirmButton: false });
             } catch (err) {
                 console.error(err);
-                Swal.fire({ icon: 'error', title: 'บันทึกไม่สำเร็จ', text: err.toString() });
+                Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาดในการบันทึก', text: err.toString() });
             }
         }
 
-        // --- Time Calculations (Tab Time) ---
+        // --- Time Calculation (Tab Time) ---
         function calculateAllTimes() {
             const data = getTargetPersonData();
             if (!data.fullName) return;
@@ -1816,25 +1847,27 @@
             container.innerHTML = html;
         }
 
-        // --- Settings Tab Actions (Photo, Password, Telegram) ---
+        // --- Settings Tab Actions (Photo Upload, Password, Telegram) ---
         function renderSettingsTab() {
             if (!currentUser) return;
             const photoPicker = document.getElementById('admin-photo-person-container');
             const pwdPicker = document.getElementById('admin-pwd-mode-container');
             const tgCard = document.getElementById('admin-telegram-settings-card');
+            const schemaCard = document.getElementById('admin-schema-card');
 
             if (currentUser.role === 'admin') {
                 if (photoPicker) photoPicker.classList.remove('hidden');
                 if (pwdPicker) pwdPicker.classList.remove('hidden');
                 if (tgCard) tgCard.classList.remove('hidden');
+                if (schemaCard) schemaCard.classList.remove('hidden');
                 loadTelegramConfig();
             } else {
                 if (photoPicker) photoPicker.classList.add('hidden');
                 if (pwdPicker) pwdPicker.classList.add('hidden');
                 if (tgCard) tgCard.classList.add('hidden');
+                if (schemaCard) schemaCard.classList.add('hidden');
             }
 
-            // Preview photo
             let photoUrl = 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
             if (currentUser.role === 'user') {
                 const sheet1 = appData['1'] || [];
@@ -1851,17 +1884,27 @@
             document.getElementById('settings-preview-photo').src = photoUrl;
         }
 
-        function handleSettingsPhotoSelect(event) {
+        // Client-side auto compression on image selection
+        async function handleSettingsPhotoSelect(event) {
             const file = event.target.files[0];
             if (!file) return;
 
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                selectedSettingsPhoto = e.target.result;
-                selectedSettingsPhotoMeta = { fileName: file.name, mimeType: file.type };
-                document.getElementById('settings-preview-photo').src = e.target.result;
-            };
-            reader.readAsDataURL(file);
+            try {
+                // Compress to max 800px width/height and JPEG 0.82
+                const compressed = await compressImage(file, 800, 1000, 0.82);
+                selectedSettingsPhoto = compressed.base64;
+                selectedSettingsPhotoMeta = { fileName: compressed.fileName, mimeType: compressed.mimeType };
+                document.getElementById('settings-preview-photo').src = compressed.base64;
+            } catch (err) {
+                console.error("Compression error:", err);
+                const reader = new FileReader();
+                reader.onload = e => {
+                    selectedSettingsPhoto = e.target.result;
+                    selectedSettingsPhotoMeta = { fileName: file.name, mimeType: file.type };
+                    document.getElementById('settings-preview-photo').src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
         }
 
         async function submitUploadPhoto() {
@@ -1874,6 +1917,7 @@
 
             Swal.fire({
                 title: 'กำลังอัปโหลดรูปภาพเข้า Google Drive...',
+                text: 'โฟลเดอร์ ID: 1aNoq78PvihZC5_BLPxyBbHxyzlF9k9ns',
                 allowOutsideClick: false,
                 didOpen: () => Swal.showLoading()
             });
@@ -1890,7 +1934,8 @@
                     })
                 });
                 const result = await res.json();
-                await fetchSheetData();
+                sessionStorage.removeItem(CLIENT_CACHE_KEY);
+                await fetchSheetData(true);
                 Swal.fire({ icon: 'success', title: 'อัปโหลดและเปลี่ยนรูปโปรไฟล์สำเร็จ' });
             } catch (err) {
                 console.error(err);
@@ -1951,7 +1996,6 @@
             }
         }
 
-        // --- Telegram Integration Actions ---
         async function loadTelegramConfig() {
             try {
                 const res = await fetch(GAS_URL + '?action=getConfig');
@@ -2032,6 +2076,34 @@
             }
         }
 
+        // --- Database Schema & Header Manager Action ---
+        async function syncSheetHeaders() {
+            Swal.fire({
+                title: 'กำลังตรวจสอบและตั้งค่าหัวตาราง...',
+                text: 'ระบบกำลังตรวจสอบชีท 1-6 และ Config ใน Google Sheet',
+                allowOutsideClick: false,
+                didOpen: () => Swal.showLoading()
+            });
+
+            try {
+                const res = await fetch(GAS_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'setupHeaders' })
+                });
+                const result = await res.json();
+                sessionStorage.removeItem(CLIENT_CACHE_KEY);
+                await fetchSheetData(true);
+                Swal.fire({
+                    icon: 'success',
+                    title: 'ตั้งค่าหัวตารางสำเร็จ',
+                    html: `<div class="text-left text-xs bg-slate-100 p-3 rounded font-mono whitespace-pre-line max-h-60 overflow-y-auto">${result.message || 'โครงสร้างชีทสมบูรณ์แล้ว'}</div>`
+                });
+            } catch (err) {
+                console.error(err);
+                Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: err.toString() });
+            }
+        }
+
         // --- Add Personnel Modal (Admin Only) ---
         function openAddPersonModal() {
             document.getElementById('add-idcard').value = '';
@@ -2080,7 +2152,8 @@
                 const result = await res.json();
 
                 closeModal('modal-add-person');
-                await fetchSheetData();
+                sessionStorage.removeItem(CLIENT_CACHE_KEY);
+                await fetchSheetData(true);
                 Swal.fire({ icon: 'success', title: 'เพิ่มประวัติบุคลากรใหม่เรียบร้อยแล้ว' });
             } catch (err) {
                 console.error(err);
