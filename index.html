@@ -1913,7 +1913,18 @@
                 return;
             }
 
-            let targetIdCard = currentUser.role === 'admin' ? document.getElementById('settings-photo-target-person').value : currentUser.idCard;
+            let targetIdCard = '';
+            if (currentUser && currentUser.role === 'admin') {
+                const targetSelect = document.getElementById('settings-photo-target-person');
+                targetIdCard = targetSelect ? targetSelect.value : '';
+            } else if (currentUser) {
+                targetIdCard = currentUser.idCard;
+            }
+
+            if (!targetIdCard) {
+                const sheet1 = appData['1'] || [];
+                if (sheet1.length > 0) targetIdCard = sheet1[0]['เลขบัตรประชาชน'];
+            }
 
             Swal.fire({
                 title: 'กำลังอัปโหลดรูปภาพเข้า Google Drive...',
@@ -1928,15 +1939,20 @@
                     body: JSON.stringify({
                         action: 'uploadPhoto',
                         base64: selectedSettingsPhoto,
-                        fileName: selectedSettingsPhotoMeta.fileName,
-                        mimeType: selectedSettingsPhotoMeta.mimeType,
+                        fileName: (selectedSettingsPhotoMeta && selectedSettingsPhotoMeta.fileName) ? selectedSettingsPhotoMeta.fileName : 'photo.jpg',
+                        mimeType: (selectedSettingsPhotoMeta && selectedSettingsPhotoMeta.mimeType) ? selectedSettingsPhotoMeta.mimeType : 'image/jpeg',
                         idCard: targetIdCard
                     })
                 });
                 const result = await res.json();
-                sessionStorage.removeItem(CLIENT_CACHE_KEY);
-                await fetchSheetData(true);
-                Swal.fire({ icon: 'success', title: 'อัปโหลดและเปลี่ยนรูปโปรไฟล์สำเร็จ' });
+
+                if (result.status === 'success') {
+                    sessionStorage.removeItem(CLIENT_CACHE_KEY);
+                    await fetchSheetData(true);
+                    Swal.fire({ icon: 'success', title: 'อัปโหลดและเปลี่ยนรูปโปรไฟล์สำเร็จ' });
+                } else {
+                    Swal.fire({ icon: 'error', title: 'อัปโหลดไม่สำเร็จ', text: result.message || 'เกิดข้อผิดพลาดจากเซิร์ฟเวอร์' });
+                }
             } catch (err) {
                 console.error(err);
                 Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาดในการอัปโหลด', text: err.toString() });
