@@ -303,6 +303,16 @@
             <div id="personnel-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <!-- Cards injected here -->
             </div>
+
+            <!-- Personnel Pagination Bar (รองรับ 500+ คน ลื่นไหล ไม่กระตุก) -->
+            <div id="personnel-pagination" class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
+                <div id="pagination-info" class="text-gray-600 font-medium text-center sm:text-left">
+                    แสดงรายการที่ <span id="page-start" class="font-bold text-mkred-700">1</span> - <span id="page-end" class="font-bold text-mkred-700">24</span> จากทั้งหมด <span id="page-total" class="font-bold text-mkred-700">0</span> คน
+                </div>
+                <div id="pagination-controls" class="flex flex-wrap items-center justify-center gap-1">
+                    <!-- Dynamic page buttons injected here -->
+                </div>
+            </div>
         </section>
 
         <!-- ================= TAB: Personal Info (Inline Editing Protected) ================= -->
@@ -740,9 +750,15 @@
         let isInlineEditMode = false;
         let dynamicTableRows = { '2': [], '3': [], '5': [], '6': [] };
 
-        const CLIENT_CACHE_KEY = 'mk_sheet_cache_v2';
-        const CLIENT_CACHE_TIME_KEY = 'mk_sheet_cache_time';
-        const CLIENT_CACHE_TTL_MS = 5 * 60 * 1000; // 5 นาที สำหรับเบราว์เซอร์
+        // Pagination for 500+ records
+        let personnelCurrentPage = 1;
+        const PERSONNEL_PER_PAGE = 24;
+
+        // LocalStorage Caching with Stale-While-Revalidate
+        const CLIENT_CACHE_KEY = 'mk_sheet_cache_v3';
+        const CLIENT_CACHE_TIME_KEY = 'mk_sheet_cache_time_v3';
+        const CLIENT_CACHE_VER_KEY = 'mk_sheet_cache_ver_v3';
+        const CLIENT_CACHE_TTL_MS = 15 * 60 * 1000; // 15 นาที
 
         window.onload = async () => {
             const dateInput = document.getElementById('target-date');
@@ -757,67 +773,161 @@
             updateUIAfterAuth();
         };
 
-        // --- Fast Data Fetching with Browser & Script Cache ---
+        // --- Inflate Compact Matrix Data ---
+        function inflateMatrixData(matrixData) {
+            if (!matrixData) return {};
+            let result = {};
+            for (let sheetName in matrixData) {
+                const item = matrixData[sheetName];
+                if (item && item.h && Array.isArray(item.r)) {
+                    const headers = item.h;
+                    result[sheetName] = item.r.map(row => {
+                        let obj = {};
+                        for (let i = 0; i < headers.length; i++) {
+                            obj[headers[i]] = row[i] !== undefined ? row[i] : "";
+                        }
+                        return obj;
+                    });
+                } else if (Array.isArray(item)) {
+                    result[sheetName] = item;
+                } else {
+                    result[sheetName] = [];
+                }
+            }
+            return result;
+        }
+
+        // --- Fetch with Retry & Exponential Backoff ---
+        async function fetchWithRetry(url, options = {}, retries = 3, backoff = 1000) {
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const res = await fetch(url, options);
+                    if (res.ok) return res;
+                    if (res.status === 429 || res.status >= 500) {
+                        await new Promise(r => setTimeout(r, backoff * Math.pow(2, i) + Math.random() * 400));
+                        continue;
+                    }
+                    return res;
+                } catch (err) {
+                    if (i === retries - 1) throw err;
+                    await new Promise(r => setTimeout(r, backoff * Math.pow(2, i) + Math.random() * 400));
+                }
+            }
+            throw new Error("ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ในขณะนี้");
+        }
+
+        // --- Clear Local Client Cache ---
+        function clearClientCache() {
+            try {
+                localStorage.removeItem(CLIENT_CACHE_KEY);
+                localStorage.removeItem(CLIENT_CACHE_TIME_KEY);
+                localStorage.removeItem(CLIENT_CACHE_VER_KEY);
+            } catch(e) {}
+        }
+
+        // --- Master Render Function ---
+        function renderAllViews() {
+            renderDashboard();
+            renderPersonnelGrid();
+            populateFilters();
+            populatePersonPickers();
+            if (currentUser) {
+                renderPersonalInfo();
+                calculateAllTimes();
+            }
+        }
+
+        // --- Fast Data Fetching with Stale-While-Revalidate Engine ---
         async function fetchSheetData(forceRefresh = false) {
             const loader = document.getElementById('loader');
             const refreshIcon = document.getElementById('refresh-icon');
             if (forceRefresh && refreshIcon) refreshIcon.classList.add('fa-spin');
 
-            // 1. Check browser cache if not forcing refresh
-            if (!forceRefresh) {
-                const cachedTime = sessionStorage.getItem(CLIENT_CACHE_TIME_KEY);
-                const cachedDataStr = sessionStorage.getItem(CLIENT_CACHE_KEY);
-                if (cachedTime && cachedDataStr && (Date.now() - parseInt(cachedTime, 10) < CLIENT_CACHE_TTL_MS)) {
-                    try {
-                        appData = JSON.parse(cachedDataStr);
-                        if (loader) loader.style.display = 'none';
-                        renderDashboard();
-                        renderPersonnelGrid();
-                        populateFilters();
-                        populatePersonPickers();
-                        if (currentUser) { renderPersonalInfo(); calculateAllTimes(); }
-                        return;
-                    } catch(e) {}
+            // 1. Instant Render from LocalStorage (Stale-While-Revalidate)
+            let hasRenderedFromCache = false;
+            let cachedVer = '';
+            try {
+                const cachedTime = localStorage.getItem(CLIENT_CACHE_TIME_KEY);
+                const cachedDataStr = localStorage.getItem(CLIENT_CACHE_KEY);
+                cachedVer = localStorage.getItem(CLIENT_CACHE_VER_KEY) || '';
+
+                if (cachedDataStr) {
+                    appData = JSON.parse(cachedDataStr);
+                    hasRenderedFromCache = true;
+                    if (loader) loader.style.display = 'none';
+                    renderAllViews();
                 }
+
+                // If cache is fresh and not forceRefresh, return immediately
+                const isFresh = cachedTime && (Date.now() - parseInt(cachedTime, 10) < CLIENT_CACHE_TTL_MS);
+                if (isFresh && !forceRefresh && hasRenderedFromCache) {
+                    return;
+                }
+            } catch (cacheErr) {
+                console.warn("Local cache read error:", cacheErr);
             }
 
-            // 2. Fetch from GAS API
+            // 2. Fetch from Apps Script API (Conditional ?since=...)
             try {
-                const url = forceRefresh ? `${GAS_URL}?refresh=true` : GAS_URL;
-                const response = await fetch(url);
-                if (!response.ok) throw new Error("Network error fetching API");
-                const res = await response.json();
-                appData = res.data ? res.data : res;
+                let url = GAS_URL;
+                const params = [];
+                if (forceRefresh) {
+                    params.push('refresh=true');
+                } else if (cachedVer) {
+                    params.push(`since=${encodeURIComponent(cachedVer)}`);
+                }
+                if (params.length > 0) {
+                    url += (url.includes('?') ? '&' : '?') + params.join('&');
+                }
 
-                // Save to browser session storage
-                sessionStorage.setItem(CLIENT_CACHE_KEY, JSON.stringify(appData));
-                sessionStorage.setItem(CLIENT_CACHE_TIME_KEY, String(Date.now()));
+                const response = await fetchWithRetry(url);
+                if (!response.ok) throw new Error("HTTP " + response.status);
+                const res = await response.json();
+
+                if (res.status === 'not_modified') {
+                    // Data not changed on server! Update local timestamp
+                    try { localStorage.setItem(CLIENT_CACHE_TIME_KEY, String(Date.now())); } catch(e) {}
+                    if (refreshIcon) refreshIcon.classList.remove('fa-spin');
+                    if (forceRefresh) {
+                        Swal.fire({ icon: 'info', title: 'ข้อมูลล่าสุดแล้ว', text: 'ข้อมูลในระบบไม่มีการเปลี่ยนแปลง', timer: 1000, showConfirmButton: false });
+                    }
+                    return;
+                }
+
+                // Inflate matrix data if compressed
+                if (res.format === 'matrix' || (res.data && res.data['1'] && res.data['1'].h)) {
+                    appData = inflateMatrixData(res.data);
+                } else {
+                    appData = res.data ? res.data : res;
+                }
+
+                // Cache in localStorage
+                try {
+                    localStorage.setItem(CLIENT_CACHE_KEY, JSON.stringify(appData));
+                    localStorage.setItem(CLIENT_CACHE_TIME_KEY, String(Date.now()));
+                    if (res.version) localStorage.setItem(CLIENT_CACHE_VER_KEY, String(res.version));
+                } catch (storeErr) {
+                    console.warn("Storage write error:", storeErr);
+                }
 
                 if (loader) loader.style.display = 'none';
                 if (refreshIcon) refreshIcon.classList.remove('fa-spin');
 
-                renderDashboard();
-                renderPersonnelGrid();
-                populateFilters();
-                populatePersonPickers();
-
-                if (currentUser) {
-                    renderPersonalInfo();
-                    calculateAllTimes();
-                }
+                renderAllViews();
 
                 if (forceRefresh) {
                     Swal.fire({ icon: 'success', title: 'อัปเดตข้อมูลสดเรียบร้อยแล้ว', timer: 1000, showConfirmButton: false });
                 }
             } catch (error) {
                 console.error("Error fetching data:", error);
-                if (loader) {
+                if (refreshIcon) refreshIcon.classList.remove('fa-spin');
+                if (!hasRenderedFromCache && loader) {
                     loader.innerHTML = `
                         <div class="text-red-600 text-center p-6 max-w-md">
                             <i class="fas fa-exclamation-triangle text-4xl mb-3"></i>
-                            <h3 class="font-bold text-base">เกิดข้อผิดพลาดในการดึงข้อมูล</h3>
-                            <p class="text-xs text-gray-600 mt-2">โปรดตรวจสอบการเชื่อมต่ออินเทอร์เน็ตหรือ Apps Script Web App</p>
-                            <button onclick="location.reload()" class="mt-4 bg-mkred-700 text-white px-4 py-2 rounded-lg text-xs font-bold">ลองใหม่อีกครั้ง</button>
+                            <h3 class="font-bold text-base">ระบบกำลังมีผู้ใช้งานจำนวนมาก</h3>
+                            <p class="text-xs text-gray-600 mt-2">กำลังรอคิวเชื่อมต่อ Google Apps Script โปรดกดปุ่มด้านล่างเพื่อลองใหม่อีกครั้ง</p>
+                            <button onclick="fetchSheetData(true)" class="mt-4 bg-mkred-700 hover:bg-mkred-800 text-white px-5 py-2.5 rounded-lg text-xs font-bold shadow transition">ลองใหม่อีกครั้ง</button>
                         </div>
                     `;
                 }
@@ -1232,7 +1342,7 @@
             });
         }
 
-        // --- Tab Personnel List & Cards ---
+        // --- Tab Personnel List & Cards (Optimized with Pagination for 500+ Records) ---
         function renderPersonnelGrid() {
             const grid = document.getElementById('personnel-grid');
             if (!grid) return;
@@ -1242,13 +1352,51 @@
 
             if (sheet1.length === 0) {
                 grid.innerHTML = `<div class="col-span-full text-center py-12 text-gray-400">ไม่พบข้อมูลบุคลากร</div>`;
+                renderPaginationControls(0, 0);
                 return;
             }
 
+            const searchInput = document.getElementById('search-personnel');
+            const posFilter = document.getElementById('filter-position');
+            const academicFilter = document.getElementById('filter-academic');
+
+            const searchVal = searchInput ? searchInput.value.toLowerCase().trim() : '';
+            const posVal = posFilter ? posFilter.value : '';
+            const academicVal = academicFilter ? academicFilter.value : '';
+
             const findS4 = (name) => sheet4.find(r => String(r['ชื่อ-สกุล']).trim() === String(name).trim()) || {};
 
+            const filtered = sheet1.filter(person => {
+                const name = String(person['ชื่อ-สกุล'] || '').toLowerCase();
+                const idCard = String(person['เลขบัตรประชาชน'] || '');
+                const s4 = findS4(person['ชื่อ-สกุล']);
+                const pos = s4['ตำแหน่ง'] || '';
+                const academic = s4['วิทยฐานะ'] || '';
+
+                const matchesSearch = !searchVal || name.includes(searchVal) || idCard.includes(searchVal) || pos.toLowerCase().includes(searchVal);
+                const matchesPos = !posVal || pos === posFilter.value;
+                const matchesAcademic = !academicVal || academic === academicFilter.value;
+                return matchesSearch && matchesPos && matchesAcademic;
+            });
+
+            const totalItems = filtered.length;
+            const totalPages = Math.ceil(totalItems / PERSONNEL_PER_PAGE) || 1;
+
+            if (personnelCurrentPage > totalPages) personnelCurrentPage = totalPages;
+            if (personnelCurrentPage < 1) personnelCurrentPage = 1;
+
+            if (totalItems === 0) {
+                grid.innerHTML = `<div class="col-span-full text-center py-12 text-gray-400">ไม่พบข้อมูลตามเงื่อนไขที่ค้นหา</div>`;
+                renderPaginationControls(0, 0);
+                return;
+            }
+
+            const startIndex = (personnelCurrentPage - 1) * PERSONNEL_PER_PAGE;
+            const endIndex = Math.min(startIndex + PERSONNEL_PER_PAGE, totalItems);
+            const pageItems = filtered.slice(startIndex, endIndex);
+
             let html = '';
-            sheet1.forEach(person => {
+            pageItems.forEach(person => {
                 const fullName = person['ชื่อ-สกุล'] || 'ไม่ระบุชื่อ';
                 const idCard = person['เลขบัตรประชาชน'] || '';
                 const photoUrl = person['รูปถ่าย'] || person['URL รูปถ่าย'] || 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
@@ -1262,10 +1410,10 @@
                 let actionButtons = '';
                 if (isAdmin || isSelf) {
                     actionButtons = `
-                        <button onclick="viewPrintableProfile('${idCard}')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1">
+                        <button onclick="viewPrintableProfile('${idCard}')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1 transition">
                             <i class="fas fa-print"></i> ใบประวัติ
                         </button>
-                        <button onclick="selectAndGoToPersonal('${idCard}')" class="bg-amber-100 hover:bg-amber-200 text-amber-900 px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1">
+                        <button onclick="selectAndGoToPersonal('${idCard}')" class="bg-amber-100 hover:bg-amber-200 text-amber-900 px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1 transition">
                             <i class="fas fa-eye"></i> ดูข้อมูล & แก้ไข
                         </button>
                     `;
@@ -1276,7 +1424,7 @@
                 html += `
                     <div class="glass-card p-5 flex flex-col justify-between hover:shadow-xl transition-all border-t-4 border-mkred-700 relative">
                         <div class="flex items-start gap-4">
-                            <img src="${photoUrl}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/149/149071.png'" class="w-20 h-24 object-cover rounded-xl border-2 border-amber-300 shadow-sm flex-shrink-0">
+                            <img src="${photoUrl}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/149/149071.png'" class="w-20 h-24 object-cover rounded-xl border-2 border-amber-300 shadow-sm flex-shrink-0" loading="lazy">
                             <div class="space-y-1 min-w-0">
                                 <span class="bg-mkred-100 text-mkred-800 text-[11px] font-bold px-2 py-0.5 rounded-md inline-block">${pos}</span>
                                 <h3 class="text-base font-bold text-gray-900 truncate">${fullName}</h3>
@@ -1293,6 +1441,76 @@
             });
 
             grid.innerHTML = html;
+            renderPaginationControls(totalItems, totalPages, startIndex, endIndex);
+        }
+
+        function filterPersonnel() {
+            personnelCurrentPage = 1;
+            renderPersonnelGrid();
+        }
+
+        function changePersonnelPage(newPage) {
+            personnelCurrentPage = newPage;
+            renderPersonnelGrid();
+            const sec = document.getElementById('tab-personnel');
+            if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function renderPaginationControls(totalItems, totalPages, startIndex = 0, endIndex = 0) {
+            const infoEl = document.getElementById('pagination-info');
+            const controlsEl = document.getElementById('pagination-controls');
+            const container = document.getElementById('personnel-pagination');
+            if (!container || !controlsEl) return;
+
+            if (totalItems === 0) {
+                container.classList.add('hidden');
+                return;
+            }
+            container.classList.remove('hidden');
+
+            if (infoEl) {
+                infoEl.innerHTML = `แสดงรายการที่ <span class="font-bold text-mkred-700">${startIndex + 1}</span> - <span class="font-bold text-mkred-700">${endIndex}</span> จากทั้งหมด <span class="font-bold text-mkred-700">${totalItems}</span> คน`;
+            }
+
+            let btnsHtml = '';
+
+            // Previous Button
+            btnsHtml += `
+                <button onclick="changePersonnelPage(${personnelCurrentPage - 1})" ${personnelCurrentPage <= 1 ? 'disabled class="px-2.5 py-1 rounded border border-gray-200 text-gray-300 cursor-not-allowed"' : 'class="px-2.5 py-1 rounded border border-gray-300 hover:bg-slate-100 text-gray-700 font-semibold transition"'}>
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+            `;
+
+            // Page numbers
+            let startP = Math.max(1, personnelCurrentPage - 2);
+            let endP = Math.min(totalPages, personnelCurrentPage + 2);
+
+            if (startP > 1) {
+                btnsHtml += `<button onclick="changePersonnelPage(1)" class="px-2.5 py-1 rounded border border-gray-300 hover:bg-slate-100 text-gray-700 font-semibold transition">1</button>`;
+                if (startP > 2) btnsHtml += `<span class="px-1 text-gray-400">...</span>`;
+            }
+
+            for (let p = startP; p <= endP; p++) {
+                if (p === personnelCurrentPage) {
+                    btnsHtml += `<button class="px-3 py-1 rounded bg-mkred-700 text-white font-bold shadow-sm">${p}</button>`;
+                } else {
+                    btnsHtml += `<button onclick="changePersonnelPage(${p})" class="px-2.5 py-1 rounded border border-gray-300 hover:bg-slate-100 text-gray-700 font-semibold transition">${p}</button>`;
+                }
+            }
+
+            if (endP < totalPages) {
+                if (endP < totalPages - 1) btnsHtml += `<span class="px-1 text-gray-400">...</span>`;
+                btnsHtml += `<button onclick="changePersonnelPage(${totalPages})" class="px-2.5 py-1 rounded border border-gray-300 hover:bg-slate-100 text-gray-700 font-semibold transition">${totalPages}</button>`;
+            }
+
+            // Next Button
+            btnsHtml += `
+                <button onclick="changePersonnelPage(${personnelCurrentPage + 1})" ${personnelCurrentPage >= totalPages ? 'disabled class="px-2.5 py-1 rounded border border-gray-200 text-gray-300 cursor-not-allowed"' : 'class="px-2.5 py-1 rounded border border-gray-300 hover:bg-slate-100 text-gray-700 font-semibold transition"'}>
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            `;
+
+            controlsEl.innerHTML = btnsHtml;
         }
 
         function populateFilters() {
@@ -1311,81 +1529,6 @@
 
             posSelect.innerHTML = '<option value="">-- ทุกตำแหน่ง --</option>' + [...positions].map(p => `<option value="${p}">${p}</option>`).join('');
             academicSelect.innerHTML = '<option value="">-- ทุกวิทยฐานะ --</option>' + [...academics].map(a => `<option value="${a}">${a}</option>`).join('');
-        }
-
-        function filterPersonnel() {
-            const search = document.getElementById('search-personnel').value.toLowerCase();
-            const posFilter = document.getElementById('filter-position').value;
-            const academicFilter = document.getElementById('filter-academic').value;
-
-            const sheet1 = appData['1'] || [];
-            const sheet4 = appData['4'] || [];
-            const findS4 = (name) => sheet4.find(r => String(r['ชื่อ-สกุล']).trim() === String(name).trim()) || {};
-
-            const filtered = sheet1.filter(person => {
-                const name = String(person['ชื่อ-สกุล'] || '').toLowerCase();
-                const idCard = String(person['เลขบัตรประชาชน'] || '');
-                const s4 = findS4(person['ชื่อ-สกุล']);
-                const pos = s4['ตำแหน่ง'] || '';
-                const academic = s4['วิทยฐานะ'] || '';
-
-                const matchesSearch = name.includes(search) || idCard.includes(search) || pos.toLowerCase().includes(search);
-                const matchesPos = !posFilter || pos === posFilter;
-                const matchesAcademic = !academicFilter || academic === academicFilter;
-                return matchesSearch && matchesPos && matchesAcademic;
-            });
-
-            const grid = document.getElementById('personnel-grid');
-            if (filtered.length === 0) {
-                grid.innerHTML = `<div class="col-span-full text-center py-12 text-gray-400">ไม่พบข้อมูลตามเงื่อนไขที่ค้นหา</div>`;
-                return;
-            }
-
-            let html = '';
-            filtered.forEach(person => {
-                const fullName = person['ชื่อ-สกุล'] || 'ไม่ระบุชื่อ';
-                const idCard = person['เลขบัตรประชาชน'] || '';
-                const photoUrl = person['รูปถ่าย'] || person['URL รูปถ่าย'] || 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
-                const s4 = findS4(fullName);
-                const pos = s4['ตำแหน่ง'] || 'ไม่ระบุ';
-                const academic = s4['วิทยฐานะ'] || '-';
-
-                const isSelf = currentUser && currentUser.role === 'user' && (String(currentUser.idCard).replace(/\D/g, '') === String(idCard).replace(/\D/g, ''));
-                const isAdmin = currentUser && currentUser.role === 'admin';
-
-                let actionButtons = '';
-                if (isAdmin || isSelf) {
-                    actionButtons = `
-                        <button onclick="viewPrintableProfile('${idCard}')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1">
-                            <i class="fas fa-print"></i> ใบประวัติ
-                        </button>
-                        <button onclick="selectAndGoToPersonal('${idCard}')" class="bg-amber-100 hover:bg-amber-200 text-amber-900 px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1">
-                            <i class="fas fa-eye"></i> ดูข้อมูล & แก้ไข
-                        </button>
-                    `;
-                } else {
-                    actionButtons = `<span class="text-gray-400 text-[11px] italic"><i class="fas fa-lock mr-1"></i>ดูข้อมูลลึกเฉพาะตนเอง</span>`;
-                }
-
-                html += `
-                    <div class="glass-card p-5 flex flex-col justify-between hover:shadow-xl transition-all border-t-4 border-mkred-700 relative">
-                        <div class="flex items-start gap-4">
-                            <img src="${photoUrl}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/149/149071.png'" class="w-20 h-24 object-cover rounded-xl border-2 border-amber-300 shadow-sm flex-shrink-0">
-                            <div class="space-y-1 min-w-0">
-                                <span class="bg-mkred-100 text-mkred-800 text-[11px] font-bold px-2 py-0.5 rounded-md inline-block">${pos}</span>
-                                <h3 class="text-base font-bold text-gray-900 truncate">${fullName}</h3>
-                                <p class="text-xs text-gray-500"><i class="fas fa-star text-amber-500 mr-1"></i>วิทยฐานะ: ${academic}</p>
-                                <p class="text-xs text-gray-500 truncate"><i class="fas fa-phone mr-1"></i>${person['เบอร์โทรศัพท์'] || '-'}</p>
-                            </div>
-                        </div>
-
-                        <div class="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs gap-2">
-                            ${actionButtons}
-                        </div>
-                    </div>
-                `;
-            });
-            grid.innerHTML = html;
         }
 
         function selectAndGoToPersonal(idCard) {
@@ -1770,7 +1913,7 @@
                 const result = await res.json();
 
                 // Invalidate browser cache & force refresh data
-                sessionStorage.removeItem(CLIENT_CACHE_KEY);
+                clearClientCache();
                 await fetchSheetData(true);
 
                 Swal.fire({ icon: 'success', title: `บันทึกหมวดที่ ${sheetNum} เรียบร้อยแล้ว`, timer: 1200, showConfirmButton: false });
@@ -1947,7 +2090,7 @@
                 const result = await res.json();
 
                 if (result.status === 'success') {
-                    sessionStorage.removeItem(CLIENT_CACHE_KEY);
+                    clearClientCache();
                     await fetchSheetData(true);
                     Swal.fire({ icon: 'success', title: 'อัปโหลดและเปลี่ยนรูปโปรไฟล์สำเร็จ' });
                 } else {
@@ -2107,7 +2250,7 @@
                     body: JSON.stringify({ action: 'setupHeaders' })
                 });
                 const result = await res.json();
-                sessionStorage.removeItem(CLIENT_CACHE_KEY);
+                clearClientCache();
                 await fetchSheetData(true);
                 Swal.fire({
                     icon: 'success',
@@ -2168,7 +2311,7 @@
                 const result = await res.json();
 
                 closeModal('modal-add-person');
-                sessionStorage.removeItem(CLIENT_CACHE_KEY);
+                clearClientCache();
                 await fetchSheetData(true);
                 Swal.fire({ icon: 'success', title: 'เพิ่มประวัติบุคลากรใหม่เรียบร้อยแล้ว' });
             } catch (err) {
