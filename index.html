@@ -37,11 +37,19 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <style>
+        :root {
+            --primary-color: #822727;
+            --primary-dark: #63171B;
+            --primary-light: #fdf2f2;
+            --secondary-color: #ECC94B;
+            --secondary-dark: #D69E2E;
+        }
         body { font-family: 'Sarabun', sans-serif; background-color: #f8fafc; }
+        .theme-header-grad { background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-color) 50%, var(--primary-dark) 100%) !important; }
         .tab-btn { border-bottom: 3px solid transparent; transition: all 0.2s ease; }
-        .tab-btn.active { border-bottom: 3px solid #C53030; color: #C53030; font-weight: 700; background-color: #FEF2F2; }
-        .glass-card { background: rgba(255, 255, 255, 0.98); box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-radius: 0.85rem; border-top: 4px solid #C53030; }
-        .spinner { border: 4px solid rgba(0, 0, 0, 0.1); width: 45px; height: 45px; border-radius: 50%; border-left-color: #C53030; animation: spin 1s linear infinite; }
+        .tab-btn.active { border-bottom: 3px solid var(--primary-color); color: var(--primary-color); font-weight: 700; background-color: var(--primary-light); }
+        .glass-card { background: rgba(255, 255, 255, 0.98); box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-radius: 0.85rem; border-top: 4px solid var(--primary-color); }
+        .spinner { border: 4px solid rgba(0, 0, 0, 0.1); width: 45px; height: 45px; border-radius: 50%; border-left-color: var(--primary-color); animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
         /* Inline input styling */
@@ -78,18 +86,18 @@
     <!-- Loading Overlay -->
     <div id="loader" class="fixed inset-0 flex flex-col items-center justify-center bg-white/95 z-50 transition-opacity">
         <div class="spinner mb-4"></div>
-        <h2 class="text-mkred-700 text-lg font-bold">กำลังโหลดข้อมูลระบบสารสนเทศ...</h2>
-        <p class="text-gray-500 text-xs mt-1">โรงเรียนวัดแม่กะ สำนักงานเขตพื้นที่การศึกษาประถมศึกษา</p>
+        <h2 class="text-lg font-bold" style="color: var(--primary-color);">กำลังโหลดข้อมูลระบบสารสนเทศ...</h2>
+        <p id="loader-school-sub" class="text-gray-500 text-xs mt-1">โรงเรียนวัดแม่กะ สำนักงานเขตพื้นที่การศึกษาประถมศึกษา</p>
     </div>
 
     <!-- Header Banner -->
-    <header class="bg-gradient-to-r from-mkred-900 via-mkred-800 to-mkred-900 text-white shadow-lg pt-5 pb-4 flex-shrink-0 relative overflow-hidden">
+    <header id="main-header" class="theme-header-grad text-white shadow-lg pt-5 pb-4 flex-shrink-0 relative overflow-hidden">
         <div class="container mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4">
             <div class="flex flex-col md:flex-row items-center gap-3 text-center md:text-left">
-                <img src="https://img2.pic.in.th/logob0b7643db577ceee.png" alt="Logo" class="h-16 w-16 md:h-20 md:w-20 object-contain bg-white rounded-full p-1 border-4 border-mkyellow-400 shadow-md">
+                <img id="header-school-logo" src="https://img2.pic.in.th/logob0b7643db577ceee.png" alt="Logo" class="h-16 w-16 md:h-20 md:w-20 object-contain bg-white rounded-full p-1 border-4 shadow-md" style="border-color: var(--secondary-color);">
                 <div>
-                    <h1 class="text-xl md:text-2xl font-extrabold text-mkyellow-400 tracking-wide">โรงเรียนวัดแม่กะ</h1>
-                    <p class="text-xs md:text-sm text-red-100 font-medium">ระบบสารสนเทศทะเบียนประวัติข้าราชการและบุคลากรทางการศึกษา</p>
+                    <h1 id="header-school-name" class="text-xl md:text-2xl font-extrabold tracking-wide" style="color: var(--secondary-color);">โรงเรียนวัดแม่กะ</h1>
+                    <p id="header-school-subname" class="text-xs md:text-sm text-red-100 font-medium">ระบบสารสนเทศทะเบียนประวัติข้าราชการและบุคลากรทางการศึกษา</p>
                 </div>
             </div>
             
@@ -233,12 +241,12 @@
 
         <!-- ================= TAB: Login ================= -->
         <section id="tab-login" class="hidden flex flex-col items-center justify-center py-10">
-            <div class="glass-card p-8 max-w-md w-full text-center border-t-8 border-mkred-700 shadow-xl">
-                <div class="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 text-mkred-700 shadow-inner">
-                    <i class="fas fa-shield-alt text-4xl"></i>
+            <div class="glass-card p-8 max-w-md w-full text-center shadow-xl" style="border-top-width: 8px; border-top-color: var(--primary-color);">
+                <div class="mb-4">
+                    <img id="login-school-logo" src="https://img2.pic.in.th/logob0b7643db577ceee.png" class="w-20 h-20 object-contain mx-auto p-1.5 rounded-full bg-white shadow border-2" style="border-color: var(--secondary-color);">
                 </div>
-                <h2 class="text-2xl font-bold text-mkred-800 mb-1">เข้าสู่ระบบสารสนเทศ</h2>
-                <p class="text-gray-500 text-xs mb-6">กรอกข้อมูลผู้ใช้งานเพื่อเข้าดูและจัดการทะเบียนประวัติ</p>
+                <h2 id="login-school-name" class="text-2xl font-bold mb-1" style="color: var(--primary-color);">โรงเรียนวัดแม่กะ</h2>
+                <p id="login-school-sub" class="text-gray-500 text-xs mb-6">ระบบสารสนเทศทะเบียนประวัติข้าราชการและบุคลากรทางการศึกษา</p>
                 
                 <form onsubmit="event.preventDefault(); submitLogin();" class="space-y-4 text-left">
                     <div>
@@ -477,11 +485,145 @@
 
         <!-- ================= TAB: Settings ================= -->
         <section id="tab-settings" class="hidden space-y-6 max-w-4xl mx-auto">
-            <div class="bg-mkred-800 text-white p-4 rounded-xl shadow flex items-center gap-3">
-                <i class="fas fa-cog text-3xl text-mkyellow-400"></i>
+            <div class="theme-header-grad text-white p-4 rounded-xl shadow flex items-center gap-3">
+                <i class="fas fa-cog text-3xl" style="color: var(--secondary-color);"></i>
                 <div>
                     <h2 class="text-lg font-bold text-white">ระบบตั้งค่า (Settings)</h2>
-                    <p class="text-xs text-red-100">จัดการรูปโปรไฟล์, เปลี่ยนรหัสผ่าน และการตั้งค่าแจ้งเตือน Telegram</p>
+                    <p class="text-xs text-red-100">ตั้งค่าอัตลักษณ์โรงเรียน, ธีมสี, จัดการรูปโปรไฟล์, รหัสผ่าน และการแจ้งเตือน Telegram</p>
+                </div>
+            </div>
+
+            <!-- Settings Card 0: School Identity & Theme Customizer (ADMIN ONLY) -->
+            <div id="admin-branding-card" class="glass-card p-6 hidden">
+                <div class="flex justify-between items-center border-b pb-2 mb-4">
+                    <h3 class="text-base font-bold flex items-center gap-2" style="color: var(--primary-color);">
+                        <i class="fas fa-palette text-lg" style="color: var(--secondary-color);"></i> ตั้งค่าอัตลักษณ์โรงเรียนและธีมสี (School Identity & Theme Settings)
+                    </h3>
+                    <span class="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded">เฉพาะแอดมิน</span>
+                </div>
+
+                <!-- Live Preview Mockup -->
+                <div class="mb-6 bg-slate-100 p-4 rounded-xl border border-gray-200">
+                    <p class="text-xs font-bold text-gray-700 mb-2 flex items-center gap-1.5">
+                        <i class="fas fa-eye text-blue-600"></i> ตัวอย่างการแสดงผลส่วนหัวแบบเรียลไทม์ (Live Header Preview):
+                    </p>
+                    <div id="preview-header-box" class="p-4 rounded-xl text-white shadow-md flex items-center gap-3 transition-all" style="background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-color) 50%, var(--primary-dark) 100%);">
+                        <img id="preview-brand-logo" src="https://img2.pic.in.th/logob0b7643db577ceee.png" class="w-14 h-14 object-contain rounded-full bg-white p-1 border-2 shadow" style="border-color: var(--secondary-color);">
+                        <div>
+                            <h4 id="preview-brand-school-name" class="font-extrabold text-base tracking-wide" style="color: var(--secondary-color);">โรงเรียนวัดแม่กะ</h4>
+                            <p id="preview-brand-school-sub" class="text-xs opacity-90">สำนักงานเขตพื้นที่การศึกษาประถมศึกษาเชียงใหม่ เขต 2</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Color Presets -->
+                <div class="mb-6">
+                    <label class="block text-xs font-bold text-gray-700 mb-2">
+                        <i class="fas fa-magic text-purple-600 mr-1"></i> เลือกชุดสีโรงเรียนยอดนิยม (คลิก 1 วินาทีเปลี่ยนทันที):
+                    </label>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                        <button type="button" onclick="setThemePreset('#822727', '#ECC94B')" class="flex items-center gap-2 p-2 rounded-lg border border-gray-200 hover:border-gray-400 bg-white shadow-sm transition hover:scale-105">
+                            <span class="w-5 h-5 rounded-full flex-shrink-0" style="background: linear-gradient(135deg, #822727 50%, #ECC94B 50%); border: 1px solid #ccc;"></span>
+                            <span class="truncate font-medium">เลือดหมู-ทอง</span>
+                        </button>
+                        <button type="button" onclick="setThemePreset('#1E3A8A', '#38BDF8')" class="flex items-center gap-2 p-2 rounded-lg border border-gray-200 hover:border-gray-400 bg-white shadow-sm transition hover:scale-105">
+                            <span class="w-5 h-5 rounded-full flex-shrink-0" style="background: linear-gradient(135deg, #1E3A8A 50%, #38BDF8 50%); border: 1px solid #ccc;"></span>
+                            <span class="truncate font-medium">น้ำเงิน-ฟ้า</span>
+                        </button>
+                        <button type="button" onclick="setThemePreset('#166534', '#FACC15')" class="flex items-center gap-2 p-2 rounded-lg border border-gray-200 hover:border-gray-400 bg-white shadow-sm transition hover:scale-105">
+                            <span class="w-5 h-5 rounded-full flex-shrink-0" style="background: linear-gradient(135deg, #166534 50%, #FACC15 50%); border: 1px solid #ccc;"></span>
+                            <span class="truncate font-medium">เขียว-เหลือง</span>
+                        </button>
+                        <button type="button" onclick="setThemePreset('#DC2626', '#FFFFFF')" class="flex items-center gap-2 p-2 rounded-lg border border-gray-200 hover:border-gray-400 bg-white shadow-sm transition hover:scale-105">
+                            <span class="w-5 h-5 rounded-full flex-shrink-0" style="background: linear-gradient(135deg, #DC2626 50%, #FFFFFF 50%); border: 1px solid #ccc;"></span>
+                            <span class="truncate font-medium">แดง-ขาว</span>
+                        </button>
+                        <button type="button" onclick="setThemePreset('#581C87', '#F59E0B')" class="flex items-center gap-2 p-2 rounded-lg border border-gray-200 hover:border-gray-400 bg-white shadow-sm transition hover:scale-105">
+                            <span class="w-5 h-5 rounded-full flex-shrink-0" style="background: linear-gradient(135deg, #581C87 50%, #F59E0B 50%); border: 1px solid #ccc;"></span>
+                            <span class="truncate font-medium">ม่วง-ทอง</span>
+                        </button>
+                        <button type="button" onclick="setThemePreset('#C2410C', '#0F172A')" class="flex items-center gap-2 p-2 rounded-lg border border-gray-200 hover:border-gray-400 bg-white shadow-sm transition hover:scale-105">
+                            <span class="w-5 h-5 rounded-full flex-shrink-0" style="background: linear-gradient(135deg, #C2410C 50%, #0F172A 50%); border: 1px solid #ccc;"></span>
+                            <span class="truncate font-medium">ส้ม-กรมท่า</span>
+                        </button>
+                        <button type="button" onclick="setThemePreset('#0284C7', '#FEF08A')" class="flex items-center gap-2 p-2 rounded-lg border border-gray-200 hover:border-gray-400 bg-white shadow-sm transition hover:scale-105">
+                            <span class="w-5 h-5 rounded-full flex-shrink-0" style="background: linear-gradient(135deg, #0284C7 50%, #FEF08A 50%); border: 1px solid #ccc;"></span>
+                            <span class="truncate font-medium">ฟ้า-เหลือง</span>
+                        </button>
+                        <button type="button" onclick="setThemePreset('#BE185D', '#38BDF8')" class="flex items-center gap-2 p-2 rounded-lg border border-gray-200 hover:border-gray-400 bg-white shadow-sm transition hover:scale-105">
+                            <span class="w-5 h-5 rounded-full flex-shrink-0" style="background: linear-gradient(135deg, #BE185D 50%, #38BDF8 50%); border: 1px solid #ccc;"></span>
+                            <span class="truncate font-medium">ชมพู-ฟ้า</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Color Pickers & Info Fields -->
+                <div class="space-y-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 mb-1">สีหลักประจำโรงเรียน (Primary Color):</label>
+                            <div class="flex items-center gap-2">
+                                <input type="color" id="brand-primary-color" value="#822727" oninput="handleBrandColorChange()" class="w-10 h-10 p-0.5 border rounded-lg cursor-pointer">
+                                <input type="text" id="brand-primary-hex" value="#822727" oninput="handleBrandHexInput('primary', this.value)" class="flex-grow px-3 py-2 border rounded-lg text-xs font-mono uppercase">
+                            </div>
+                            <p class="text-[10px] text-gray-400 mt-1">ใช้สำหรับแถบหัวเว็บ, แท็บที่เลือก, หัวตารางในชีท</p>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 mb-1">สีรอง / สีเน้น (Secondary / Accent Color):</label>
+                            <div class="flex items-center gap-2">
+                                <input type="color" id="brand-secondary-color" value="#ECC94B" oninput="handleBrandColorChange()" class="w-10 h-10 p-0.5 border rounded-lg cursor-pointer">
+                                <input type="text" id="brand-secondary-hex" value="#ECC94B" oninput="handleBrandHexInput('secondary', this.value)" class="flex-grow px-3 py-2 border rounded-lg text-xs font-mono uppercase">
+                            </div>
+                            <p class="text-[10px] text-gray-400 mt-1">ใช้สำหรับสีข้อความหัวเว็บ, ขอบตราสัญลักษณ์, ไอคอนเด่น</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 mb-1">ชื่อโรงเรียน *</label>
+                            <input type="text" id="brand-school-name" placeholder="เช่น โรงเรียนวัดแม่กะ" oninput="handleBrandTextChange()" class="w-full px-3 py-2 border rounded-lg text-xs font-semibold">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 mb-1">หน่วยงานต้นสังกัด (สพป./สพม.) *</label>
+                            <input type="text" id="brand-school-subname" placeholder="เช่น สำนักงานเขตพื้นที่การศึกษาประถมศึกษาเชียงใหม่ เขต 2" oninput="handleBrandTextChange()" class="w-full px-3 py-2 border rounded-lg text-xs">
+                        </div>
+                    </div>
+
+                    <!-- Logo Settings: Upload or URL -->
+                    <div class="bg-slate-50 p-4 rounded-xl border border-gray-200 space-y-3">
+                        <label class="block text-xs font-bold text-gray-700">
+                            <i class="fas fa-image text-emerald-600 mr-1"></i> ตราสัญลักษณ์ / โลโก้โรงเรียน (เลือกวิธีใดวิธีหนึ่ง):
+                        </label>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+                            <div>
+                                <label class="block text-[11px] text-gray-600 mb-1">วิธีที่ 1: อัปโหลดรูปภาพขึ้น Google Drive</label>
+                                <input type="file" id="brand-logo-file" accept="image/*" onchange="uploadSchoolLogoToDrive(event)" class="text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 w-full">
+                                <p class="text-[10px] text-gray-400 mt-1">⚡ มีระบบบีบอัดอัตโนมัติก่อนส่งขึ้น Google Drive</p>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] text-gray-600 mb-1">วิธีที่ 2: วางลิงก์รูปภาพโดยตรง (Direct Image URL)</label>
+                                <input type="url" id="brand-logo-url" placeholder="https://..." oninput="handleBrandLogoUrlInput(this.value)" class="w-full px-3 py-2 border rounded-lg text-xs font-mono">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Drive Folder ID -->
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">
+                            <i class="fab fa-google-drive text-amber-500 mr-1"></i> Google Drive Folder ID (สำหรับจัดเก็บรูปถ่ายของโรงเรียน):
+                        </label>
+                        <input type="text" id="brand-drive-folder" placeholder="เช่น 1aNoq78PvihZC5_BLPxyBbHxyzlF9k9ns" class="w-full px-3 py-2 border rounded-lg text-xs font-mono">
+                        <p class="text-[10px] text-gray-400 mt-1">* หากโรงเรียนอื่นคัดลอกระบบไปใช้ เพียงสร้างโฟลเดอร์ใน Google Drive แล้วนำ Folder ID มาใส่ตรงนี้</p>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-3 pt-3 border-t">
+                        <button type="button" onclick="saveSchoolBrandingSettings()" class="bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs px-5 py-2.5 rounded-lg shadow transition flex items-center gap-2">
+                            <i class="fas fa-save"></i> บันทึกการตั้งค่าอัตลักษณ์โรงเรียน
+                        </button>
+                        <button type="button" onclick="resetSchoolBrandingToDefault()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-xs px-4 py-2.5 rounded-lg transition flex items-center gap-1.5">
+                            <i class="fas fa-undo"></i> คืนค่าเริ่มต้น (รร.วัดแม่กะ)
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -598,11 +740,32 @@
                         </div>
                     </div>
 
-                    <div class="flex flex-wrap items-center gap-3 pt-2">
-                        <button onclick="testTelegramConnection()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-4 py-2.5 rounded-lg shadow transition flex items-center gap-2">
-                            <i class="fab fa-telegram-plane"></i> ทดสอบส่งข้อความ Telegram
-                        </button>
-                        <button onclick="saveTelegramSettings()" class="bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs px-5 py-2.5 rounded-lg shadow transition flex items-center gap-2">
+                    <!-- Section: ทดสอบส่งตัวอย่างการแจ้งเตือนแต่ละประเภทเข้า Telegram -->
+                    <div class="bg-blue-50/70 p-4 rounded-xl border border-blue-200 space-y-3">
+                        <div class="flex items-center gap-2">
+                            <i class="fab fa-telegram text-blue-600 text-base"></i>
+                            <h4 class="text-xs font-bold text-blue-900">ทดสอบส่งตัวอย่างการแจ้งเตือนจำลองเข้า Telegram:</h4>
+                        </div>
+                        <p class="text-[11px] text-blue-700 leading-relaxed">
+                            เนื่องจากการแจ้งเตือนจริงจะเกิดขึ้นเฉพาะเมื่อถึงกำหนดวัน คุณสามารถเลือกประเภทด้านล่างแล้วกดส่งตัวอย่างข้อความเข้ากลุ่ม Telegram ได้ทันที เพื่อตรวจสอบว่าบอทส่งข้อความได้ถูกต้องและสวยงาม
+                        </p>
+                        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 pt-1">
+                            <select id="tg-sample-type" class="px-3 py-2 border border-blue-300 rounded-lg text-xs bg-white text-gray-800 focus:ring-2 focus:ring-blue-500 font-medium flex-grow sm:flex-grow-0 sm:w-72">
+                                <option value="connection">🔔 ทดสอบการเชื่อมต่อทั่วไป (Ping Test)</option>
+                                <option value="birthday">🎂 ตัวอย่าง: สุขสันต์วันเกิดบุคลากร</option>
+                                <option value="license6m">ℹ️ ตัวอย่าง: แจ้งเตือนก่อนใบอนุญาตหมดอายุ 6 เดือน</option>
+                                <option value="license3m">📢 ตัวอย่าง: แจ้งเตือนก่อนใบอนุญาตหมดอายุ 3 เดือน</option>
+                                <option value="licenseExpired">⚠️ ตัวอย่าง: แจ้งเตือนใบอนุญาตหมดอายุวันนี้</option>
+                                <option value="dailyDigest">📋 ตัวอย่าง: รายงานสรุปรวมประจำวัน (ทุกกรณีรวมกัน)</option>
+                            </select>
+                            <button type="button" onclick="testTelegramConnection()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-4 py-2 rounded-lg shadow transition flex items-center justify-center gap-2 whitespace-nowrap">
+                                <i class="fab fa-telegram-plane"></i> <span>ทดสอบส่งตัวอย่างที่เลือก</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-end pt-2 border-t">
+                        <button type="button" onclick="saveTelegramSettings()" class="bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs px-5 py-2.5 rounded-lg shadow transition flex items-center gap-2">
                             <i class="fas fa-check-circle"></i> บันทึกและเปิดระบบแจ้งเตือน 10:00 น.
                         </button>
                     </div>
@@ -635,7 +798,7 @@
 
     <!-- Footer -->
     <footer class="bg-gray-900 text-gray-400 text-center py-4 text-xs mt-auto border-t border-gray-800">
-        <p>โรงเรียนวัดแม่กะ © 2026 ระบบสารสนเทศทะเบียนประวัติข้าราชการและบุคลากรทางการศึกษา</p>
+        <p id="footer-school-name">โรงเรียนวัดแม่กะ © 2026 ระบบสารสนเทศทะเบียนประวัติข้าราชการและบุคลากรทางการศึกษา</p>
     </footer>
 
     <!-- ================= MODAL: Add Personnel (Admin Only) ================= -->
@@ -702,13 +865,13 @@
             </div>
 
             <div id="printable-area" class="text-gray-900 font-sans leading-relaxed">
-                <div class="text-center border-b-2 border-mkred-800 pb-4 mb-6">
+                <div class="text-center border-b-2 pb-4 mb-6" style="border-color: var(--primary-color);">
                     <div class="flex justify-between items-start mb-2">
-                        <img src="https://img2.pic.in.th/logob0b7643db577ceee.png" class="w-20 h-20 object-contain">
+                        <img id="print-school-logo" src="https://img2.pic.in.th/logob0b7643db577ceee.png" class="w-20 h-20 object-contain">
                         <div class="text-center flex-grow px-4">
-                            <h2 class="text-xl font-bold text-gray-900">ใบทะเบียนประวัติส่วนบุคคล (ก.พ. 7)</h2>
-                            <h3 class="text-base font-bold text-mkred-800">โรงเรียนวัดแม่กะ</h3>
-                            <p class="text-xs text-gray-600">สำนักงานเขตพื้นที่การศึกษาประถมศึกษา</p>
+                            <h2 class="text-xl font-bold text-gray-900">ใบทะเบียนประวัติส่วนบุคคล</h2>
+                            <h3 id="print-school-name" class="text-base font-bold" style="color: var(--primary-color);">โรงเรียนวัดแม่กะ</h3>
+                            <p id="print-school-sub" class="text-xs text-gray-600">สำนักงานเขตพื้นที่การศึกษาประถมศึกษา</p>
                         </div>
                         <div class="w-24 h-28 border-2 border-dashed border-gray-300 rounded flex items-center justify-center overflow-hidden bg-gray-50">
                             <img id="print-photo" src="" class="w-full h-full object-cover hidden">
@@ -722,7 +885,7 @@
                 <div class="mt-8 pt-4 border-t text-xs text-gray-500 flex justify-between items-end">
                     <div>
                         <p>ข้อมูล ณ วันที่: <span id="print-generated-date">-</span></p>
-                        <p>ระบบสารสนเทศทะเบียนประวัติ โรงเรียนวัดแม่กะ</p>
+                        <p id="print-school-footer">ระบบสารสนเทศทะเบียนประวัติ โรงเรียนวัดแม่กะ</p>
                     </div>
                     <div class="text-center w-48">
                         <p class="mb-8">ลงชื่อ.......................................................</p>
@@ -736,7 +899,7 @@
 
     <!-- Application Engine JavaScript -->
     <script>
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbyx6bVj0stFYejxOoWjeEnPSKTGWv7DE7mjizVMclZ-Q_8JuT1GSr26F3TgGgTbHI59/exec";
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbylywJKwx2DKWu2zRsYIIpkVpm0k8hDKYc69sMTH4zTDp75JRNximzIOyDS8fMehjMT/exec";
 
         // Global State & Client Caching
         let appData = {};
@@ -755,12 +918,113 @@
         const PERSONNEL_PER_PAGE = 24;
 
         // LocalStorage Caching with Stale-While-Revalidate
-        const CLIENT_CACHE_KEY = 'mk_sheet_cache_v4';
-        const CLIENT_CACHE_TIME_KEY = 'mk_sheet_cache_time_v4';
-        const CLIENT_CACHE_VER_KEY = 'mk_sheet_cache_ver_v4';
+        const CLIENT_CACHE_KEY = 'mk_sheet_cache_v5';
+        const CLIENT_CACHE_TIME_KEY = 'mk_sheet_cache_time_v5';
+        const CLIENT_CACHE_VER_KEY = 'mk_sheet_cache_ver_v5';
         const CLIENT_CACHE_TTL_MS = 15 * 60 * 1000; // 15 นาที
 
+        // Default School Branding
+        const DEFAULT_SCHOOL_CONFIG = {
+            schoolName: 'โรงเรียนวัดแม่กะ',
+            schoolSubName: 'สำนักงานเขตพื้นที่การศึกษาประถมศึกษาเชียงใหม่ เขต 2',
+            schoolLogoUrl: 'https://img2.pic.in.th/logob0b7643db577ceee.png',
+            primaryColor: '#822727',
+            secondaryColor: '#ECC94B',
+            driveFolderId: '1aNoq78PvihZC5_BLPxyBbHxyzlF9k9ns'
+        };
+        let currentSchoolConfig = Object.assign({}, DEFAULT_SCHOOL_CONFIG);
+
+        // Preload cached theme instantly
+        try {
+            const cachedTheme = localStorage.getItem('school_branding_config_v1');
+            if (cachedTheme) {
+                currentSchoolConfig = Object.assign({}, DEFAULT_SCHOOL_CONFIG, JSON.parse(cachedTheme));
+            }
+        } catch(e) {}
+
+        function adjustColorBrightness(hex, percent) {
+            let num = parseInt(hex.replace('#', ''), 16);
+            let r = (num >> 16) + Math.round(255 * (percent / 100));
+            let g = ((num >> 8) & 0x00FF) + Math.round(255 * (percent / 100));
+            let b = (num & 0x0000FF) + Math.round(255 * (percent / 100));
+            r = Math.min(255, Math.max(0, r));
+            g = Math.min(255, Math.max(0, g));
+            b = Math.min(255, Math.max(0, b));
+            return '#' + (0x1000000 + (r << 16) + (g << 8) + b).toString(16).slice(1);
+        }
+
+        function hexToRgbaString(hex, alpha) {
+            let c = hex.replace('#', '');
+            if (c.length === 3) c = c.split('').map(x => x + x).join('');
+            const num = parseInt(c, 16);
+            const r = (num >> 16) & 255;
+            const g = (num >> 8) & 255;
+            const b = num & 255;
+            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        }
+
+        function applySchoolTheme(conf) {
+            if (!conf) return;
+            const primary = conf.primaryColor || '#822727';
+            const secondary = conf.secondaryColor || '#ECC94B';
+            const schoolName = conf.schoolName || 'โรงเรียนวัดแม่กะ';
+            const schoolSub = conf.schoolSubName || 'สำนักงานเขตพื้นที่การศึกษาประถมศึกษาเชียงใหม่ เขต 2';
+            const logoUrl = conf.schoolLogoUrl || 'https://img2.pic.in.th/logob0b7643db577ceee.png';
+
+            // CSS Variables
+            document.documentElement.style.setProperty('--primary-color', primary);
+            document.documentElement.style.setProperty('--primary-dark', adjustColorBrightness(primary, -30));
+            document.documentElement.style.setProperty('--primary-light', hexToRgbaString(primary, 0.08));
+            document.documentElement.style.setProperty('--secondary-color', secondary);
+            document.documentElement.style.setProperty('--secondary-dark', adjustColorBrightness(secondary, -25));
+
+            // Browser Tab Title
+            document.title = `ระบบสารสนเทศทะเบียนประวัติ - ${schoolName}`;
+
+            // Loader
+            const loaderSub = document.getElementById('loader-school-sub');
+            if (loaderSub) loaderSub.innerText = `${schoolName} ${schoolSub}`;
+
+            // Header Banner
+            const hLogo = document.getElementById('header-school-logo');
+            if (hLogo && logoUrl) hLogo.src = logoUrl;
+            const hName = document.getElementById('header-school-name');
+            if (hName) hName.innerText = schoolName;
+            const hSub = document.getElementById('header-school-subname');
+            if (hSub) hSub.innerText = `ระบบสารสนเทศทะเบียนประวัติข้าราชการและบุคลากรทางการศึกษา ${schoolName}`;
+
+            // Login Page
+            const lLogo = document.getElementById('login-school-logo');
+            if (lLogo && logoUrl) lLogo.src = logoUrl;
+            const lName = document.getElementById('login-school-name');
+            if (lName) lName.innerText = schoolName;
+            const lSub = document.getElementById('login-school-sub');
+            if (lSub) lSub.innerText = `${schoolName} ${schoolSub}`;
+
+            // Footer
+            const fName = document.getElementById('footer-school-name');
+            if (fName) fName.innerText = `${schoolName} © ${new Date().getFullYear() + 543} ระบบสารสนเทศทะเบียนประวัติข้าราชการและบุคลากรทางการศึกษา`;
+
+            // Print Modal
+            const pLogo = document.getElementById('print-school-logo');
+            if (pLogo && logoUrl) pLogo.src = logoUrl;
+            const pName = document.getElementById('print-school-name');
+            if (pName) pName.innerText = schoolName;
+            const pSub = document.getElementById('print-school-sub');
+            if (pSub) pSub.innerText = schoolSub;
+            const pFooter = document.getElementById('print-school-footer');
+            if (pFooter) pFooter.innerText = `ระบบสารสนเทศทะเบียนประวัติ ${schoolName}`;
+
+            // Update live preview in Admin card if visible
+            updateAdminThemePreview(schoolName, schoolSub, logoUrl, primary, secondary);
+        }
+
+        // Apply immediately
+        applySchoolTheme(currentSchoolConfig);
+
         window.onload = async () => {
+            applySchoolTheme(currentSchoolConfig);
+
             const dateInput = document.getElementById('target-date');
             if (dateInput) dateInput.valueAsDate = new Date();
 
@@ -768,6 +1032,9 @@
             if (savedSession) {
                 try { currentUser = JSON.parse(savedSession); } catch(e) {}
             }
+
+            // Fetch remote school branding config in background
+            loadSchoolBrandingConfig();
 
             await fetchSheetData();
             updateUIAfterAuth();
@@ -1990,21 +2257,25 @@
             container.innerHTML = html;
         }
 
-        // --- Settings Tab Actions (Photo Upload, Password, Telegram) ---
+        // --- Settings Tab Actions (Photo Upload, Password, Telegram, School Branding) ---
         function renderSettingsTab() {
             if (!currentUser) return;
+            const brandingCard = document.getElementById('admin-branding-card');
             const photoPicker = document.getElementById('admin-photo-person-container');
             const pwdPicker = document.getElementById('admin-pwd-mode-container');
             const tgCard = document.getElementById('admin-telegram-settings-card');
             const schemaCard = document.getElementById('admin-schema-card');
 
             if (currentUser.role === 'admin') {
+                if (brandingCard) brandingCard.classList.remove('hidden');
                 if (photoPicker) photoPicker.classList.remove('hidden');
                 if (pwdPicker) pwdPicker.classList.remove('hidden');
                 if (tgCard) tgCard.classList.remove('hidden');
                 if (schemaCard) schemaCard.classList.remove('hidden');
+                loadSchoolBrandingForm();
                 loadTelegramConfig();
             } else {
+                if (brandingCard) brandingCard.classList.add('hidden');
                 if (photoPicker) photoPicker.classList.add('hidden');
                 if (pwdPicker) pwdPicker.classList.add('hidden');
                 if (tgCard) tgCard.classList.add('hidden');
@@ -2155,6 +2426,245 @@
             }
         }
 
+        // --- School Identity & Theme Settings Actions (Admin Only) ---
+        async function loadSchoolBrandingConfig() {
+            try {
+                const res = await fetch(GAS_URL + '?action=getConfig');
+                const result = await res.json();
+                if (result.status === 'success' && result.config) {
+                    const c = result.config;
+                    currentSchoolConfig = {
+                        schoolName: c.schoolName || DEFAULT_SCHOOL_CONFIG.schoolName,
+                        schoolSubName: c.schoolSubName || DEFAULT_SCHOOL_CONFIG.schoolSubName,
+                        schoolLogoUrl: c.schoolLogoUrl || DEFAULT_SCHOOL_CONFIG.schoolLogoUrl,
+                        primaryColor: c.primaryColor || DEFAULT_SCHOOL_CONFIG.primaryColor,
+                        secondaryColor: c.secondaryColor || DEFAULT_SCHOOL_CONFIG.secondaryColor,
+                        driveFolderId: c.driveFolderId || DEFAULT_SCHOOL_CONFIG.driveFolderId,
+                        telegramToken: c.telegramToken || '',
+                        telegramChatId: c.telegramChatId || ''
+                    };
+                    localStorage.setItem('school_branding_config_v1', JSON.stringify(currentSchoolConfig));
+                    applySchoolTheme(currentSchoolConfig);
+                    if (currentUser && currentUser.role === 'admin') {
+                        loadSchoolBrandingForm();
+                    }
+                }
+            } catch(e) {
+                console.warn("Could not fetch remote school config, using cached:", e);
+            }
+        }
+
+        function loadSchoolBrandingForm() {
+            const conf = currentSchoolConfig || DEFAULT_SCHOOL_CONFIG;
+            const elName = document.getElementById('brand-school-name');
+            if (elName) elName.value = conf.schoolName || '';
+            const elSub = document.getElementById('brand-school-subname');
+            if (elSub) elSub.value = conf.schoolSubName || '';
+            const elLogoUrl = document.getElementById('brand-logo-url');
+            if (elLogoUrl) elLogoUrl.value = conf.schoolLogoUrl || '';
+            const elPrimary = document.getElementById('brand-primary-color');
+            if (elPrimary) elPrimary.value = conf.primaryColor || '#822727';
+            const elPrimaryHex = document.getElementById('brand-primary-hex');
+            if (elPrimaryHex) elPrimaryHex.value = conf.primaryColor || '#822727';
+            const elSecondary = document.getElementById('brand-secondary-color');
+            if (elSecondary) elSecondary.value = conf.secondaryColor || '#ECC94B';
+            const elSecondaryHex = document.getElementById('brand-secondary-hex');
+            if (elSecondaryHex) elSecondaryHex.value = conf.secondaryColor || '#ECC94B';
+            const elDrive = document.getElementById('brand-drive-folder');
+            if (elDrive) elDrive.value = conf.driveFolderId || '';
+
+            updateAdminThemePreview(
+                conf.schoolName || DEFAULT_SCHOOL_CONFIG.schoolName,
+                conf.schoolSubName || DEFAULT_SCHOOL_CONFIG.schoolSubName,
+                conf.schoolLogoUrl || DEFAULT_SCHOOL_CONFIG.schoolLogoUrl,
+                conf.primaryColor || DEFAULT_SCHOOL_CONFIG.primaryColor,
+                conf.secondaryColor || DEFAULT_SCHOOL_CONFIG.secondaryColor
+            );
+        }
+
+        function updateAdminThemePreview(name, sub, logo, primary, secondary) {
+            const pBox = document.getElementById('preview-header-box');
+            if (pBox) {
+                const dark = adjustColorBrightness(primary, -30);
+                pBox.style.background = `linear-gradient(135deg, ${dark} 0%, ${primary} 50%, ${dark} 100%)`;
+            }
+            const pLogo = document.getElementById('preview-brand-logo');
+            if (pLogo && logo) {
+                pLogo.src = logo;
+                pLogo.style.borderColor = secondary;
+            }
+            const pName = document.getElementById('preview-brand-school-name');
+            if (pName) {
+                pName.innerText = name || 'ชื่อโรงเรียน';
+                pName.style.color = secondary;
+            }
+            const pSub = document.getElementById('preview-brand-school-sub');
+            if (pSub) {
+                pSub.innerText = sub || 'สำนักงานเขตพื้นที่การศึกษา';
+            }
+        }
+
+        function setThemePreset(primary, secondary) {
+            document.getElementById('brand-primary-color').value = primary;
+            document.getElementById('brand-primary-hex').value = primary;
+            document.getElementById('brand-secondary-color').value = secondary;
+            document.getElementById('brand-secondary-hex').value = secondary;
+            handleBrandColorChange();
+        }
+
+        function handleBrandColorChange() {
+            const primary = document.getElementById('brand-primary-color').value;
+            const secondary = document.getElementById('brand-secondary-color').value;
+            document.getElementById('brand-primary-hex').value = primary;
+            document.getElementById('brand-secondary-hex').value = secondary;
+            
+            const name = document.getElementById('brand-school-name').value;
+            const sub = document.getElementById('brand-school-subname').value;
+            const logo = document.getElementById('brand-logo-url').value;
+            
+            updateAdminThemePreview(name, sub, logo, primary, secondary);
+        }
+
+        function handleBrandHexInput(type, val) {
+            if (/^#[0-9A-F]{6}$/i.test(val)) {
+                if (type === 'primary') {
+                    document.getElementById('brand-primary-color').value = val;
+                } else {
+                    document.getElementById('brand-secondary-color').value = val;
+                }
+                handleBrandColorChange();
+            }
+        }
+
+        function handleBrandTextChange() {
+            const name = document.getElementById('brand-school-name').value;
+            const sub = document.getElementById('brand-school-subname').value;
+            const logo = document.getElementById('brand-logo-url').value;
+            const primary = document.getElementById('brand-primary-color').value;
+            const secondary = document.getElementById('brand-secondary-color').value;
+            updateAdminThemePreview(name, sub, logo, primary, secondary);
+        }
+
+        function handleBrandLogoUrlInput(url) {
+            const name = document.getElementById('brand-school-name').value;
+            const sub = document.getElementById('brand-school-subname').value;
+            const primary = document.getElementById('brand-primary-color').value;
+            const secondary = document.getElementById('brand-secondary-color').value;
+            updateAdminThemePreview(name, sub, url, primary, secondary);
+        }
+
+        async function uploadSchoolLogoToDrive(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            Swal.fire({
+                title: 'กำลังบีบอัดและอัปโหลดตราสัญลักษณ์...',
+                text: 'กำลังบันทึกลง Google Drive',
+                allowOutsideClick: false,
+                didOpen: () => Swal.showLoading()
+            });
+
+            try {
+                const compressed = await compressImage(file, 600, 600, 0.9);
+                const res = await fetch(GAS_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'uploadSchoolLogo',
+                        base64: compressed.base64,
+                        fileName: 'school_logo_' + new Date().getTime() + '.png',
+                        mimeType: compressed.mimeType
+                    })
+                });
+                const result = await res.json();
+                if (result.status === 'success' && result.fileUrl) {
+                    document.getElementById('brand-logo-url').value = result.fileUrl;
+                    handleBrandLogoUrlInput(result.fileUrl);
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'อัปโหลดตราสัญลักษณ์สำเร็จ!',
+                        text: 'รูปถูกบันทึกขึ้น Google Drive และอัปเดตเป็นโลโก้ของระบบแล้ว'
+                    });
+                } else {
+                    Swal.fire({ icon: 'error', title: 'อัปโหลดไม่สำเร็จ', text: result.message || 'โปรดลองใหม่อีกครั้ง' });
+                }
+            } catch(err) {
+                console.error(err);
+                Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: err.toString() });
+            }
+        }
+
+        async function saveSchoolBrandingSettings() {
+            const name = document.getElementById('brand-school-name').value.trim();
+            const sub = document.getElementById('brand-school-subname').value.trim();
+            const logo = document.getElementById('brand-logo-url').value.trim();
+            const primary = document.getElementById('brand-primary-color').value;
+            const secondary = document.getElementById('brand-secondary-color').value;
+            const driveFolder = document.getElementById('brand-drive-folder').value.trim();
+
+            if (!name) {
+                Swal.fire({ icon: 'warning', title: 'กรุณากรอกชื่อโรงเรียน' });
+                return;
+            }
+
+            const newBrandingConfig = {
+                schoolName: name,
+                schoolSubName: sub,
+                schoolLogoUrl: logo,
+                primaryColor: primary,
+                secondaryColor: secondary,
+                driveFolderId: driveFolder
+            };
+
+            Swal.fire({
+                title: 'กำลังบันทึกการตั้งค่าอัตลักษณ์...',
+                allowOutsideClick: false,
+                didOpen: () => Swal.showLoading()
+            });
+
+            try {
+                const res = await fetch(GAS_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'saveConfig',
+                        config: newBrandingConfig
+                    })
+                });
+                const result = await res.json();
+                if (result.status === 'success') {
+                    currentSchoolConfig = Object.assign({}, currentSchoolConfig, newBrandingConfig);
+                    localStorage.setItem('school_branding_config_v1', JSON.stringify(currentSchoolConfig));
+                    applySchoolTheme(currentSchoolConfig);
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'บันทึกอัตลักษณ์โรงเรียนสำเร็จ!',
+                        text: 'ชื่อโรงเรียน โลโก้ และธีมสีถูกอัปเดตทั่วทั้งระบบและบันทึกลง Google Sheet แล้ว'
+                    });
+                } else {
+                    Swal.fire({ icon: 'error', title: 'บันทึกไม่สำเร็จ', text: result.message });
+                }
+            } catch(err) {
+                console.error(err);
+                Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: err.toString() });
+            }
+        }
+
+        function resetSchoolBrandingToDefault() {
+            Swal.fire({
+                title: 'ต้องการคืนค่าเริ่มต้นหรือไม่?',
+                text: 'ระบบจะรีเซ็ตชื่อโรงเรียน โลโก้ และสีกลับเป็นค่ามาตรฐานของ รร.วัดแม่กะ',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'ใช่, คืนค่าเริ่มต้น',
+                cancelButtonText: 'ยกเลิก'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    currentSchoolConfig = Object.assign({}, DEFAULT_SCHOOL_CONFIG);
+                    loadSchoolBrandingForm();
+                    saveSchoolBrandingSettings();
+                }
+            });
+        }
+
         async function loadTelegramConfig() {
             try {
                 const res = await fetch(GAS_URL + '?action=getConfig');
@@ -2176,23 +2686,40 @@
         async function testTelegramConnection() {
             const token = document.getElementById('tg-token').value.trim();
             const chatId = document.getElementById('tg-chatid').value.trim();
+            const sampleSelect = document.getElementById('tg-sample-type');
+            const sampleType = sampleSelect ? sampleSelect.value : 'connection';
+            const sampleText = sampleSelect ? sampleSelect.options[sampleSelect.selectedIndex].text : 'ทดสอบการเชื่อมต่อ';
 
             if (!token || !chatId) {
                 Swal.fire({ icon: 'warning', title: 'กรุณากรอก Telegram Token และ Chat ID ก่อนทดสอบ' });
                 return;
             }
 
-            Swal.fire({ title: 'กำลังส่งข้อความทดสอบไปยัง Telegram...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            Swal.fire({
+                title: 'กำลังส่งข้อความจำลองเข้า Telegram...',
+                text: sampleText,
+                allowOutsideClick: false,
+                didOpen: () => Swal.showLoading()
+            });
 
             try {
                 const res = await fetch(GAS_URL, {
                     method: 'POST',
-                    body: JSON.stringify({ action: 'testTelegram', token: token, chatId: chatId })
+                    body: JSON.stringify({
+                        action: 'testTelegram',
+                        token: token,
+                        chatId: chatId,
+                        sampleType: sampleType
+                    })
                 });
                 const result = await res.json();
 
                 if (result.status === 'success') {
-                    Swal.fire({ icon: 'success', title: 'ส่งข้อความสำเร็จ!', text: 'โปรดตรวจสอบข้อความในห้องแชท Telegram ของท่าน' });
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'ส่งข้อความสำเร็จ!',
+                        text: 'ระบบได้ส่ง ' + sampleText + ' ไปยังห้องแชท Telegram เรียบร้อยแล้ว'
+                    });
                 } else {
                     Swal.fire({ icon: 'error', title: 'ส่งไม่สำเร็จ', text: result.message || 'โปรดตรวจสอบความถูกต้องของ Token และ Chat ID' });
                 }
