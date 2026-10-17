@@ -736,7 +736,7 @@
 
     <!-- Application Engine JavaScript -->
     <script>
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbzdwp_fLG2_JKvm9VqPhIvo3jro1BwqITzOKneSqAGDzZri9CLCsW3Lacy7B1tCzCd1OQ/exec";
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbyx6bVj0stFYejxOoWjeEnPSKTGWv7DE7mjizVMclZ-Q_8JuT1GSr26F3TgGgTbHI59/exec";
 
         // Global State & Client Caching
         let appData = {};
@@ -755,9 +755,9 @@
         const PERSONNEL_PER_PAGE = 24;
 
         // LocalStorage Caching with Stale-While-Revalidate
-        const CLIENT_CACHE_KEY = 'mk_sheet_cache_v3';
-        const CLIENT_CACHE_TIME_KEY = 'mk_sheet_cache_time_v3';
-        const CLIENT_CACHE_VER_KEY = 'mk_sheet_cache_ver_v3';
+        const CLIENT_CACHE_KEY = 'mk_sheet_cache_v4';
+        const CLIENT_CACHE_TIME_KEY = 'mk_sheet_cache_time_v4';
+        const CLIENT_CACHE_VER_KEY = 'mk_sheet_cache_ver_v4';
         const CLIENT_CACHE_TTL_MS = 15 * 60 * 1000; // 15 นาที
 
         window.onload = async () => {
